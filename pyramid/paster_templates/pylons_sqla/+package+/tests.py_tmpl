@@ -3,20 +3,29 @@ import unittest
 class MyHandlerTests(unittest.TestCase):
     def setUp(self):
         from pyramid.configuration import Configurator
-        from sqlalchemy import create_engine
-        from {{package}}.models import initialize_sql
-        self.session = initialize_sql(create_engine('sqlite://'))
         self.config = Configurator()
         self.config.begin()
 
     def tearDown(self):
         self.config.end()
 
+    def _initSQL(self):
+        from {{package}}.models import Base
+        from {{package}}.models import DBSession
+        from {{package}}.models import init_model
+        from {{package}}.models.mymodel import MyModel
+        engine = init_model({'sqlalchemy.url':'sqlite:///'})
+        Base.metadata.create_all(engine)
+        model = MyModel(name=u'root', value=55)
+        DBSession.add(model)
+        DBSession.flush()
+
     def _makeOne(self, request):
         from {{package}}.handlers import MyHandler
         return MyHandler(request)
 
     def test_index(self):
+        self._initSQL()
         request = DummyRequest()
         handler = self._makeOne(request)
         info = handler.index()

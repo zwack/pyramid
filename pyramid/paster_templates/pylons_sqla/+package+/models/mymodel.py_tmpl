@@ -1,0 +1,21 @@
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import Unicode
+
+from {{package}}.models import Base
+from {{package}}.models import DBSession
+
+class MyModel(Base):
+    __tablename__ = 'models'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(255), unique=True)
+    value = Column(Integer)
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+    
+    @classmethod
+    def by_name(cls, name=None):
+        return DBSession.query(cls).filter(cls.name == name).first()
+

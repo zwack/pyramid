@@ -1,0 +1,25 @@
+import os
+import pkg_resources
+import sys
+import transaction
+
+from paste.deploy.loadwsgi import appconfig
+
+from {{package}}.models import init_model
+from {{package}}.models import Base
+from {{package}}.models import DBSession
+from {{package}}.models.mymodel import MyModel
+
+def setup(argv=sys.argv):
+    dist = pkg_resources.get_distribution('{{project}}')
+    root = dist.location
+    config = 'config:' + os.path.join(root, 'development.ini')
+    settings = appconfig(config, "{{project}}")
+    engine = init_model(settings)
+    DBSession.configure(bind=engine)
+    Base.metadata.bind = engine
+    Base.metadata.create_all(engine)
+    model = MyModel(name=u'root', value=55)
+    DBSession.add(model)
+    DBSession.flush()
+    transaction.commit()
