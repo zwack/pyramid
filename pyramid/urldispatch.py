@@ -168,3 +168,12 @@ def _compile_route(route):
         return gen % newdict
 
     return matcher, generator
+
+def DefaultsPregenerator(defaults, wrapped=None):
+    if wrapped is None:
+        wrapped = lambda r, e, k: (e, k)
+    def generator(request, elements, kwargs):
+        newkw = dict(defaults)
+        newkw.update(kwargs)
+        return wrapped(request, elements, newkw)
+    return generator

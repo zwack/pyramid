@@ -80,6 +80,7 @@ from pyramid.threadlocal import manager
 from pyramid.traversal import DefaultRootFactory
 from pyramid.traversal import find_interface
 from pyramid.traversal import traversal_path
+from pyramid.urldispatch import DefaultsPregenerator
 from pyramid.urldispatch import RoutesMapper
 from pyramid.util import DottedNameResolver
 from pyramid.util import WeakOrderedSet
@@ -1594,6 +1595,7 @@ class Configurator(object):
                   path=None,
                   pregenerator=None,
                   static=False,
+                  defaults=None,
                   ):
         """ Add a :term:`route configuration` to the current
         configuration state, as well as possibly a :term:`view
@@ -1688,6 +1690,14 @@ class Configurator(object):
           If ``static`` is ``True``, this route will never match an incoming
           request; it will only be useful for URL generation.  By default,
           ``static`` is ``False``.  See :ref:`static_route_narr`.
+
+          .. note:: New in :app:`Pyramid` 1.1.
+
+        defaults
+
+          A dictionary where each item specifies a default value for
+          one key in the ``pattern``. This only affects url generation
+          and will be applied before the ``pregenerator``.
 
           .. note:: New in :app:`Pyramid` 1.1.
 
@@ -1936,6 +1946,10 @@ class Configurator(object):
 
         discriminator = ('route', name)
         self.action(discriminator, None)
+
+        # wrap defaults into a pregenerator
+        if defaults:
+            pregenerator = DefaultsPregenerator(defaults, pregenerator)
 
         return mapper.connect(name, pattern, factory, predicates=predicates,
                               pregenerator=pregenerator, static=static)
