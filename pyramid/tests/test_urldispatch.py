@@ -254,14 +254,16 @@ class TestCompileRoute(unittest.TestCase):
         return _compile_route(pattern)
 
     def test_no_star(self):
-        matcher, generator = self._callFUT('/foo/:baz/biz/:buz/bar')
+        matcher, generator, args = self._callFUT('/foo/:baz/biz/:buz/bar')
         self.assertEqual(matcher('/foo/baz/biz/buz/bar'),
                          {'baz':'baz', 'buz':'buz'})
         self.assertEqual(matcher('foo/baz/biz/buz/bar'), None)
         self.assertEqual(generator({'baz':1, 'buz':2}), '/foo/1/biz/2/bar')
+        self.assertEqual(args, ['baz', 'buz'])
 
     def test_with_star(self):
-        matcher, generator = self._callFUT('/foo/:baz/biz/:buz/bar*traverse')
+        matcher, generator, args = self._callFUT(
+            '/foo/:baz/biz/:buz/bar*traverse')
         self.assertEqual(matcher('/foo/baz/biz/buz/bar'),
                          {'baz':'baz', 'buz':'buz', 'traverse':()})
         self.assertEqual(matcher('/foo/baz/biz/buz/bar/everything/else/here'),
@@ -270,9 +272,10 @@ class TestCompileRoute(unittest.TestCase):
         self.assertEqual(matcher('foo/baz/biz/buz/bar'), None)
         self.assertEqual(generator(
             {'baz':1, 'buz':2, 'traverse':u'/a/b'}), '/foo/1/biz/2/bar/a/b')
+        self.assertEqual(args, ['baz', 'buz', 'traverse'])
     
     def test_with_bracket_star(self):
-        matcher, generator = self._callFUT(
+        matcher, generator, args = self._callFUT(
             '/foo/{baz}/biz/{buz}/bar{remainder:.*}')
         self.assertEqual(matcher('/foo/baz/biz/buz/bar'),
                          {'baz':'baz', 'buz':'buz', 'remainder':''})
@@ -282,50 +285,58 @@ class TestCompileRoute(unittest.TestCase):
         self.assertEqual(matcher('foo/baz/biz/buz/bar'), None)
         self.assertEqual(generator(
             {'baz':1, 'buz':2, 'remainder':'/a/b'}), '/foo/1/biz/2/bar%2Fa%2Fb')
+        self.assertEqual(args, ['baz', 'buz', 'remainder'])
 
     def test_no_beginning_slash(self):
-        matcher, generator = self._callFUT('foo/:baz/biz/:buz/bar')
+        matcher, generator, args = self._callFUT('foo/:baz/biz/:buz/bar')
         self.assertEqual(matcher('/foo/baz/biz/buz/bar'),
                          {'baz':'baz', 'buz':'buz'})
         self.assertEqual(matcher('foo/baz/biz/buz/bar'), None)
         self.assertEqual(generator({'baz':1, 'buz':2}), '/foo/1/biz/2/bar')
+        self.assertEqual(args, ['baz', 'buz'])
 
     def test_url_decode_error(self):
         from pyramid.exceptions import URLDecodeError
-        matcher, generator = self._callFUT('/:foo')
+        matcher, generator, args = self._callFUT('/:foo')
         self.assertRaises(URLDecodeError, matcher, '/%FF%FE%8B%00')
     
     def test_custom_regex(self):
-        matcher, generator = self._callFUT('foo/{baz}/biz/{buz:[^/\.]+}.{bar}')
+        matcher, generator, args = self._callFUT(
+            'foo/{baz}/biz/{buz:[^/\.]+}.{bar}')
         self.assertEqual(matcher('/foo/baz/biz/buz.bar'),
                          {'baz':'baz', 'buz':'buz', 'bar':'bar'})
         self.assertEqual(matcher('foo/baz/biz/buz/bar'), None)
         self.assertEqual(generator({'baz':1, 'buz':2, 'bar': 'html'}),
                          '/foo/1/biz/2.html')
+        self.assertEqual(args, ['baz', 'buz', 'bar'])
 
     def test_mixed_newstyle_oldstyle_pattern_defaults_to_newstyle(self):
         # pattern: '\\/foo\\/(?P<baz>abc)\\/biz\\/(?P<buz>[^/]+)\\/bar$'
         # note presence of :abc in pattern (oldstyle match)
-        matcher, generator = self._callFUT('foo/{baz:abc}/biz/{buz}/bar')
+        matcher, generator, args = self._callFUT('foo/{baz:abc}/biz/{buz}/bar')
         self.assertEqual(matcher('/foo/abc/biz/buz/bar'),
                          {'baz':'abc', 'buz':'buz'})
         self.assertEqual(generator({'baz':1, 'buz':2}), '/foo/1/biz/2/bar')
+        self.assertEqual(args, ['baz', 'buz'])
 
     def test_custom_regex_with_embedded_squigglies(self):
-        matcher, generator = self._callFUT('/{buz:\d{4}}')
+        matcher, generator, args = self._callFUT('/{buz:\d{4}}')
         self.assertEqual(matcher('/2001'), {'buz':'2001'})
         self.assertEqual(matcher('/200'), None)
         self.assertEqual(generator({'buz':2001}), '/2001')
+        self.assertEqual(args, ['buz'])
 
     def test_custom_regex_with_embedded_squigglies2(self):
-        matcher, generator = self._callFUT('/{buz:\d{3,4}}')
+        matcher, generator, args = self._callFUT('/{buz:\d{3,4}}')
         self.assertEqual(matcher('/2001'), {'buz':'2001'})
         self.assertEqual(matcher('/200'), {'buz':'200'})
         self.assertEqual(matcher('/20'), None)
         self.assertEqual(generator({'buz':2001}), '/2001')
+        self.assertEqual(args, ['buz'])
 
     def test_custom_regex_with_embedded_squigglies3(self):
-        matcher, generator = self._callFUT('/{buz:(\d{2}|\d{4})-[a-zA-Z]{3,4}-\d{2}}')
+        matcher, generator, args = self._callFUT(
+            '/{buz:(\d{2}|\d{4})-[a-zA-Z]{3,4}-\d{2}}')
         self.assertEqual(matcher('/2001-Nov-15'), {'buz':'2001-Nov-15'})
         self.assertEqual(matcher('/99-June-10'), {'buz':'99-June-10'})
         self.assertEqual(matcher('/2-Nov-15'), None)
@@ -333,6 +344,7 @@ class TestCompileRoute(unittest.TestCase):
         self.assertEqual(matcher('/2001-No-15'), None)
         self.assertEqual(generator({'buz':'2001-Nov-15'}), '/2001-Nov-15')
         self.assertEqual(generator({'buz':'99-June-10'}), '/99-June-10')
+        self.assertEqual(args, ['buz'])
 
 class TestCompileRouteMatchFunctional(unittest.TestCase):
     def matches(self, pattern, path, expected):
