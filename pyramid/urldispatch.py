@@ -107,14 +107,19 @@ class RoutesMapper(object):
 
     def connect(self, name, pattern, factory=None, predicates=(),
                 pregenerator=None, static=False):
-        if name in self.routes:
-            oldroute = self.routes[name]
-            if oldroute in self.routelist:
-                self.routelist.remove(oldroute)
         route = Route(name, pattern, factory, predicates, pregenerator)
         if not static:
             self.routelist.append(route)
-        self.routes[name] = route
+
+        if name in self.routes:
+            group = self.routes[name]
+            if IRoute.providedBy(group):
+                group, oldroute = RouteGroup(name), group
+                group.add(oldroute)
+                self.routes[name] = group
+            group.add(route)
+        else:
+            self.routes[name] = route
         return route
 
     def generate(self, name, kw):
