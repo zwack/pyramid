@@ -402,6 +402,49 @@ class TestCompileRouteMatchFunctional(unittest.TestCase):
                        '/a/La%20Pe%C3%B1a')
         self.generates('/foo/:id.html', {'id':'bar'}, '/foo/bar.html')
 
+class TestDefaultsPregenerator(unittest.TestCase):
+    def _callFUT(self, pregen, *elements, **kw):
+        request = DummyRequest({})
+        return pregen(request, elements, kw)
+
+    def _makeOne(self, defaults, wrapped=None):
+        from pyramid.urldispatch import DefaultsPregenerator
+        return DefaultsPregenerator(defaults, wrapped)
+
+    def test_defaults(self):
+        pregen = self._makeOne({'foo':'bar'})
+        elements, kw = self._callFUT(pregen, baz='buz')
+        self.assertEqual(elements, ())
+        self.assertEqual(kw, {'foo':'bar', 'baz':'buz'})
+
+    def test_override_default(self):
+        pregen = self._makeOne({'foo':'bar'})
+        elements, kw = self._callFUT(pregen, foo='dummy', baz='buz')
+        self.assertEqual(elements, ())
+        self.assertEqual(kw, {'foo':'dummy', 'baz':'buz'})
+
+    def test_wrapper_defaults(self):
+        inner_kw = {}
+        def wrapper(request, elements, kw):
+            inner_kw.update(kw)
+            return ('foo',), {'baz':'buz'}
+        pregen = self._makeOne({'foo':'bar'}, wrapper)
+        elements, kw = self._callFUT(pregen)
+        self.assertEqual(elements, ('foo',))
+        self.assertEqual(inner_kw, {'foo':'bar'})
+        self.assertEqual(kw, {'baz':'buz'})
+
+    def test_wrapper_override_defaults(self):
+        inner_kw = {}
+        def wrapper(request, elements, kw):
+            inner_kw.update(kw)
+            return ('foo',), {'baz':'buz'}
+        pregen = self._makeOne({'foo':'bar'}, wrapper)
+        elements, kw = self._callFUT(pregen, foo='dummy')
+        self.assertEqual(elements, ('foo',))
+        self.assertEqual(inner_kw, {'foo':'dummy'})
+        self.assertEqual(kw, {'baz':'buz'})
+
 class DummyContext(object):
     """ """
         
