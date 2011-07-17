@@ -2,6 +2,9 @@ import pkg_resources
 import sys
 import weakref
 
+from repoze.lru import lru_cache
+
+from pyramid.encode import url_quote
 from pyramid.exceptions import ConfigurationError
 from pyramid.path import package_of
 
@@ -206,3 +209,51 @@ class WeakOrderedSet(object):
         if self._order:
             oid = self._order[-1]
             return self._items[oid]()
+
+_segment_cache = {}
+
+def quote_path_segment(segment, safe=''):
+    """ Return a quoted representation of a 'path segment' (such as
+    the string ``__name__`` attribute of a resource) as a string.  If the
+    ``segment`` passed in is a unicode object, it is converted to a
+    UTF-8 string, then it is URL-quoted using Python's
+    ``urllib.quote``.  If the ``segment`` passed in is a string, it is
+    URL-quoted using Python's :mod:`urllib.quote`.  If the segment
+    passed in is not a string or unicode object, an error will be
+    raised.  The return value of ``quote_path_segment`` is always a
+    string, never Unicode.
+
+    You may pass a string of characters that need not be encoded as
+    the ``safe`` argument to this function.  This corresponds to the
+    ``safe`` argument to :mod:`urllib.quote`.
+
+    .. note:: The return value for each segment passed to this
+              function is cached in a module-scope dictionary for
+              speed: the cached version is returned when possible
+              rather than recomputing the quoted version.  No cache
+              emptying is ever done for the lifetime of an
+              application, however.  If you pass arbitrary
+              user-supplied strings to this function (as opposed to
+              some bounded set of values from a 'working set' known to
+              your application), it may become a memory leak.
+    """
+    # The bit of this code that deals with ``_segment_cache`` is an
+    # optimization: we cache all the computation of URL path segments
+    # in this module-scope dictionary with the original string (or
+    # unicode value) as the key, so we can look it up later without
+    # needing to reencode or re-url-quote it
+    try:
+        return _segment_cache[(segment, safe)]
+    except KeyError:
+        if segment.__class__ is unicode: # isinstance slighly slower (~15%)
+            result = url_quote(segment.encode('utf-8'), safe)
+        else:
+            result = url_quote(str(segment), safe)
+        # we don't need a lock to mutate _segment_cache, as the below
+        # will generate exactly one Python bytecode (STORE_SUBSCR)
+        _segment_cache[(segment, safe)] = result
+        return result
+
+@lru_cache(1000)
+def join_elements(elements):
+    return '/'.join([quote_path_segment(s, safe=':@&+$,') for s in elements])

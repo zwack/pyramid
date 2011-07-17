@@ -4,8 +4,6 @@ import os
 
 from zope.deprecation import deprecated
 
-from repoze.lru import lru_cache
-
 from pyramid.interfaces import IContextURL
 from pyramid.interfaces import IRoutesMapper
 from pyramid.interfaces import IStaticURLInfo
@@ -14,7 +12,7 @@ from pyramid.encode import urlencode
 from pyramid.path import caller_package
 from pyramid.threadlocal import get_current_registry
 from pyramid.traversal import TraversalContextURL
-from pyramid.traversal import quote_path_segment
+from pyramid.util import join_elements
 
 def route_url(route_name, request, *elements, **kw):
     """Generates a fully qualified URL for a named :app:`Pyramid`
@@ -141,7 +139,7 @@ def route_url(route_name, request, *elements, **kw):
     path = route.generate(kw) # raises KeyError if generate fails
 
     if elements:
-        suffix = _join_elements(elements)
+        suffix = join_elements(elements)
         if not path.endswith('/'):
             suffix = '/' + suffix
     else:
@@ -304,7 +302,7 @@ def resource_url(resource, request, *elements, **kw):
         anchor = '#' + anchor
 
     if elements:
-        suffix = _join_elements(elements)
+        suffix = join_elements(elements)
     else:
         suffix = ''
 
@@ -429,7 +427,3 @@ def current_route_url(request, *elements, **kw):
     newkw.update(request.matchdict)
     newkw.update(kw)
     return route_url(route_name, request, *elements, **newkw)
-
-@lru_cache(1000)
-def _join_elements(elements):
-    return '/'.join([quote_path_segment(s, safe=':@&+$,') for s in elements])

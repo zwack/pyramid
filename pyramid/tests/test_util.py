@@ -246,5 +246,40 @@ class Test_WeakOrderedSet(unittest.TestCase):
         self.assertEqual(list(wos), [])
         self.assertEqual(wos.last, None)
 
+class QuotePathSegmentTests(unittest.TestCase):
+    def _callFUT(self, s):
+        from pyramid.traversal import quote_path_segment
+        return quote_path_segment(s)
+
+    def test_unicode(self):
+        la = unicode('/La Pe\xc3\xb1a', 'utf-8')
+        result = self._callFUT(la)
+        self.assertEqual(result, '%2FLa%20Pe%C3%B1a')
+
+    def test_string(self):
+        s = '/ hello!'
+        result = self._callFUT(s)
+        self.assertEqual(result, '%2F%20hello%21')
+
+    def test_int(self):
+        s = 12345
+        result = self._callFUT(s)
+        self.assertEqual(result, '12345')
+        
+    def test_long(self):
+        import sys
+        s = long(sys.maxint + 1)
+        result = self._callFUT(s)
+        expected = str(s)
+        self.assertEqual(result, expected)
+
+    def test_other(self):
+        class Foo(object):
+            def __str__(self):
+                return 'abc'
+        s = Foo()
+        result = self._callFUT(s)
+        self.assertEqual(result, 'abc')
+
 class Dummy(object):
     pass
