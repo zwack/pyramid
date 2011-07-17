@@ -20,7 +20,7 @@ class Route(object):
                  pregenerator=None):
         self.pattern = pattern
         self.path = pattern # indefinite b/w compat, not in interface
-        self.match, self.generate = _compile_route(pattern)
+        self.match, self.generate, self.args = _compile_route(pattern)
         self.name = name
         self.factory = factory
         self.predicates = predicates
@@ -107,6 +107,7 @@ def _compile_route(route):
     prefix = pat.pop() # invar: always at least one element (route='/'+route)
     rpat.append(re.escape(prefix))
     gen.append(prefix)
+    args = [] # list of placeholder names in the pattern
 
     while pat:
         name = pat.pop()
@@ -115,6 +116,7 @@ def _compile_route(route):
             name, reg = name.split(':')
         else:
             reg = '[^/]+'
+        args.append(name)
         gen.append('%%(%s)s' % name)
         name = '(?P<%s>%s)' % (name, reg)
         rpat.append(name)
@@ -124,6 +126,7 @@ def _compile_route(route):
             gen.append(s)
 
     if star:
+        args.append(star)
         rpat.append('(?P<%s>.*?)' % star)
         gen.append('%%(%s)s' % star)
 
@@ -167,7 +170,7 @@ def _compile_route(route):
             newdict[k] = v
         return gen % newdict
 
-    return matcher, generator
+    return matcher, generator, args
 
 def DefaultsPregenerator(defaults, wrapped=None):
     if wrapped is None:

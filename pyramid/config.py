@@ -2783,7 +2783,7 @@ def _make_predicates(xhr=None, request_method=None, path_info=None,
         # routing args.  This causes the ResourceTreeTraverser to use
         # the resolved traverse pattern as the traversal path.
         from pyramid.urldispatch import _compile_route
-        _, tgenerate = _compile_route(traverse)
+        _, tgenerate, _ = _compile_route(traverse)
         def traverse_predicate(context, request):
             if 'traverse' in context:
                 return True
