@@ -76,6 +76,111 @@ class TestRoute(unittest.TestCase):
         self.assertEqual(path, '/2/a')
         self.assertEqual(kw, {'path':2, '_app_url':'http://example.com:6543'})
 
+class TestRouteGroup(unittest.TestCase):
+    def _getTargetClass(self):
+        from pyramid.urldispatch import RouteGroup
+        return RouteGroup
+
+    def _makeOne(self, *arg, **kw):
+        return self._getTargetClass()(*arg, **kw)
+
+    def _makeRoute(self, *arg, **kw):
+        from pyramid.urldispatch import Route
+        return Route(*arg, **kw)
+
+    def test_add(self):
+        group = self._makeOne('name')
+        route0 = self._makeRoute('name', ':path')
+        route1 = self._makeRoute('name', ':path/:foo')
+        route2 = self._makeRoute('name', ':path/:foo/:bar')
+        group.add(route0)
+        group.add(route1)
+        group.add(route2)
+
+        self.assertEqual(group.name, 'name')
+        self.assertEqual(len(group.routes), 3)
+        self.assertEqual(len(group.sorted_routes), 3)
+        self.assertEqual(group.routes[0], route0)
+        self.assertEqual(group.routes[1], route1)
+        self.assertEqual(group.routes[2], route2)
+
+        entry0 = group.sorted_routes[0]
+        entry1 = group.sorted_routes[1]
+        entry2 = group.sorted_routes[2]
+        self.assertEqual(entry0[3], route2)
+        self.assertEqual(entry1[3], route1)
+        self.assertEqual(entry2[3], route0)
+
+    def test_no_match(self):
+        request = DummyRequest({})
+        group = self._makeOne('name')
+        route0 = self._makeRoute('name', ':path')
+        route1 = self._makeRoute('name', ':path/:foo')
+        group.add(route0)
+        group.add(route1)
+
+        self.assertRaises(KeyError, group.gen, request, (), {})
+
+    def test_match(self):
+        request = DummyRequest({})
+        group = self._makeOne('name')
+        route0 = self._makeRoute('name', ':a/edit')
+        route1 = self._makeRoute('name', '/p/:a/:b/:c')
+        route2 = self._makeRoute('name', ':b/:c')
+        group.add(route0)
+        group.add(route1)
+        group.add(route2)
+
+        path, kw = group.gen(request, (), {'a':1})
+        self.assertEqual(path, '/1/edit')
+        self.assertEqual(kw, {'a':1})
+
+        path, kw = group.gen(request, (), {'a':1, 'b':2, 'c':3})
+        self.assertEqual(path, '/p/1/2/3')
+        self.assertEqual(kw, {'a':1, 'b':2, 'c':3})
+
+        path, kw = group.gen(request, (), {'b':2, 'c':3})
+        self.assertEqual(path, '/2/3')
+        self.assertEqual(kw, {'b':2, 'c':3})
+
+    def test_match_pregenerator(self):
+        request = DummyRequest({})
+        def pregenerator(request, elements, kwargs):
+            kwargs['a'] = 10
+            return elements, kwargs
+        group = self._makeOne('name')
+        route0 = self._makeRoute('name', ':a/edit')
+        route1 = self._makeRoute('name', '/p/:a/:b/:c',
+                                 pregenerator=pregenerator)
+        route2 = self._makeRoute('name', ':b/:c', pregenerator=pregenerator)
+        group.add(route0)
+        group.add(route1)
+        group.add(route2)
+
+        path, kw = group.gen(request, ('extra1', 'extra2'), {'a':1})
+        self.assertEqual(path, '/1/edit/extra1/extra2')
+        self.assertEqual(kw, {'a':1})
+
+        path, kw = group.gen(request, ('extra1',), {'a':1, 'b':2, 'c':3})
+        self.assertEqual(path, '/p/10/2/3/extra1')
+        self.assertEqual(kw, {'a':10, 'b':2, 'c':3})
+
+        path, kw = group.gen(request, (), {'b':2, 'c':3})
+        self.assertEqual(path, '/p/10/2/3')
+        self.assertEqual(kw, {'a':10, 'b':2, 'c':3})
+
+    def test_match_ordering(self):
+        request = DummyRequest({})
+        group = self._makeOne('name')
+        route0 = self._makeRoute('name', '/p/:a/:b/:c')
+        route1 = self._makeRoute('name', ':a/:b/:c')
+        group.add(route0)
+        group.add(route1)
+
+        path, kw = group.gen(request, (), {'a':1, 'b':2, 'c':3})
+        self.assertEqual(path, '/p/1/2/3')
+        self.assertEqual(kw, {'a':1, 'b':2, 'c':3})
+
 class RoutesMapperTests(unittest.TestCase):
     def setUp(self):
         testing.setUp()

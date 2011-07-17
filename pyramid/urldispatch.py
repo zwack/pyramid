@@ -1,4 +1,6 @@
+import itertools
 import re
+from bisect import insort
 from urllib import unquote
 from zope.interface import implements
 
@@ -41,6 +43,52 @@ class Route(object):
             suffix = ''
 
         return path + suffix, kw
+
+class RouteGroup(object):
+    def __init__(self, name):
+        self.name = name
+        self.counter = itertools.count(1)
+        self.routes = []
+        self.sorted_routes = []
+
+    def _match_route(self, request, elements, kw):
+        """ Compare the provided keys to the required args of a route.
+
+        The selected route is the first one with all required keys satisfied.
+        """
+        default_keys = frozenset(kw.keys())
+        for entry in self.sorted_routes:
+            args, route = entry[2:4]
+            if route.pregenerator is not None:
+                e, k = route.pregenerator(request, elements[:], dict(kw))
+                keys = frozenset(k.keys())
+            else:
+                e, k, keys = elements, kw, default_keys
+            if args.issubset(keys):
+                return route, e, k
+        raise KeyError('Cannot find matching route in group "%s" using '
+                       'provided keys "%s"' % (self.name, sorted(keys)))
+
+    def gen(self, request, elements, kw):
+        route, elements, kw = self._match_route(request, elements, kw)
+
+        path = route.generate(kw)
+
+        if elements:
+            suffix = join_elements(elements)
+            if not path.endswith('/'):
+                suffix = '/' + suffix
+        else:
+            suffix = ''
+
+        return path + suffix, kw
+
+    def add(self, route):
+        self.routes.append(route)
+
+        args = frozenset(route.args)
+        entry = (-len(args), next(self.counter), args, route)
+        insort(self.sorted_routes, entry)
 
 class RoutesMapper(object):
     implements(IRoutesMapper)
