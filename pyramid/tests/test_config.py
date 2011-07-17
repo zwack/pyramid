@@ -2144,6 +2144,27 @@ class ConfiguratorTests(unittest.TestCase):
         route = config.add_route('name', 'pattern', pregenerator='123')
         self.assertEqual(route.pregenerator, '123')
 
+    def test_add_route_with_defaults(self):
+        dummy_request = DummyRequest()
+        config = self._makeOne(autocommit=True)
+        route = config.add_route('name', 'pattern', defaults={'foo':'bar'})
+        elements, kw = route.pregenerator(dummy_request, (), {})
+        self.assertEqual(kw, {'foo':'bar'})
+        elements, kw = route.pregenerator(dummy_request, (), {'foo': 'baz'})
+        self.assertEqual(kw, {'foo':'baz'})
+
+    def test_add_route_with_defaults_and_pregenerator(self):
+        def DummyPregenerator(request, elements, kw):
+            return elements, kw
+        dummy_request = DummyRequest()
+        config = self._makeOne(autocommit=True)
+        route = config.add_route('name', 'pattern', defaults={'foo':'bar'},
+                                 pregenerator=DummyPregenerator)
+        elements, kw = route.pregenerator(dummy_request, (), {})
+        self.assertEqual(kw, {'foo':'bar'})
+        elements, kw = route.pregenerator(dummy_request, (), {'foo': 'baz'})
+        self.assertEqual(kw, {'foo':'baz'})
+
     def test_add_route_no_view_with_view_attr(self):
         config = self._makeOne(autocommit=True)
         from pyramid.exceptions import ConfigurationError
