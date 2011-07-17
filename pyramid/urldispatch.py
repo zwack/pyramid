@@ -10,6 +10,7 @@ from pyramid.encode import url_quote
 from pyramid.exceptions import URLDecodeError
 from pyramid.traversal import traversal_path
 from pyramid.traversal import quote_path_segment
+from pyramid.util import join_elements
 
 
 _marker = object()
@@ -25,6 +26,21 @@ class Route(object):
         self.factory = factory
         self.predicates = predicates
         self.pregenerator = pregenerator
+
+    def gen(self, request, elements, kw):
+        if self.pregenerator is not None:
+            elements, kw = self.pregenerator(request, elements, kw)
+
+        path = self.generate(kw)
+
+        if elements:
+            suffix = join_elements(elements)
+            if not path.endswith('/'):
+                suffix = '/' + suffix
+        else:
+            suffix = ''
+
+        return path + suffix, kw
 
 class RoutesMapper(object):
     implements(IRoutesMapper)

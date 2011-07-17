@@ -117,8 +117,7 @@ def route_url(route_name, request, *elements, **kw):
     if route is None:
         raise KeyError('No such route named %s' % route_name)
 
-    if route.pregenerator is not None:
-        elements, kw = route.pregenerator(request, elements, kw)
+    path, kw = route.gen(request, elements, kw)
 
     anchor = ''
     qs = ''
@@ -136,22 +135,13 @@ def route_url(route_name, request, *elements, **kw):
     if '_app_url' in kw:
         app_url = kw.pop('_app_url')
 
-    path = route.generate(kw) # raises KeyError if generate fails
-
-    if elements:
-        suffix = join_elements(elements)
-        if not path.endswith('/'):
-            suffix = '/' + suffix
-    else:
-        suffix = ''
-
     if app_url is None:
         # we only defer lookup of application_url until here because
         # it's somewhat expensive; we won't need to do it if we've
         # been passed _app_url
         app_url = request.application_url
 
-    return app_url + path + suffix + qs + anchor
+    return app_url + path + qs + anchor
 
 def route_path(route_name, request, *elements, **kw):
     """Generates a path (aka a 'relative URL', a URL minus the host, scheme,
