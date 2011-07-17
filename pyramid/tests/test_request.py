@@ -162,13 +162,16 @@ class TestRequest(unittest.TestCase):
             }
         from pyramid.interfaces import IRoutesMapper
         inst = self._makeOne(environ)
-        mapper = DummyRoutesMapper(route=DummyRoute('/1/2/3'))
+        route = DummyRoute('/1/2/3')
+        mapper = DummyRoutesMapper(route=route)
         self.config.registry.registerUtility(mapper, IRoutesMapper)
         result = inst.route_url('flub', 'extra1', 'extra2',
                                 a=1, b=2, c=3, _query={'a':1},
                                 _anchor=u"foo")
-        self.assertEqual(result,
-                         'http://example.com:5432/1/2/3/extra1/extra2?a=1#foo')
+        self.assertEqual(route.request, inst)
+        self.assertEqual(route.elements, ('extra1', 'extra2'))
+        self.assertEqual(route.kw, {'a':1, 'b':2, 'c':3})
+        self.assertEqual(result, 'http://example.com:5432/1/2/3?a=1#foo')
 
     def test_route_path(self):
         environ = {
@@ -180,12 +183,16 @@ class TestRequest(unittest.TestCase):
             }
         from pyramid.interfaces import IRoutesMapper
         inst = self._makeOne(environ)
-        mapper = DummyRoutesMapper(route=DummyRoute('/1/2/3'))
+        route = DummyRoute('/1/2/3')
+        mapper = DummyRoutesMapper(route=route)
         self.config.registry.registerUtility(mapper, IRoutesMapper)
         result = inst.route_path('flub', 'extra1', 'extra2',
                                 a=1, b=2, c=3, _query={'a':1},
                                 _anchor=u"foo")
-        self.assertEqual(result, '/1/2/3/extra1/extra2?a=1#foo')
+        self.assertEqual(route.request, inst)
+        self.assertEqual(route.elements, ('extra1', 'extra2'))
+        self.assertEqual(route.kw, {'a':1, 'b':2, 'c':3})
+        self.assertEqual(result, '/1/2/3?a=1#foo')
 
     def test_static_url(self):
         from pyramid.interfaces import IStaticURLInfo
@@ -543,9 +550,11 @@ class DummyRoute:
     def __init__(self, result='/1/2/3'):
         self.result = result
 
-    def generate(self, kw):
+    def gen(self, request, elements, kw):
+        self.request = request
+        self.elements = elements
         self.kw = kw
-        return self.result
+        return self.result, kw
 
 class DummyStaticURLInfo:
     def __init__(self, result):

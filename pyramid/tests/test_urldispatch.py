@@ -6,8 +6,8 @@ class TestRoute(unittest.TestCase):
         from pyramid.urldispatch import Route
         return Route
 
-    def _makeOne(self, *arg):
-        return self._getTargetClass()(*arg)
+    def _makeOne(self, *arg, **kw):
+        return self._getTargetClass()(*arg, **kw)
 
     def test_provides_IRoute(self):
         from pyramid.interfaces import IRoute
@@ -23,6 +23,8 @@ class TestRoute(unittest.TestCase):
         self.assertEqual(route.factory, 'factory')
         self.assertTrue(route.generate.__class__ is types.FunctionType)
         self.assertTrue(route.match.__class__ is types.FunctionType)
+        self.assertEqual(route.args, ['path'])
+        self.assertEqual(route.pregenerator, None)
 
     def test_ctor_defaults(self):
         import types
@@ -33,6 +35,8 @@ class TestRoute(unittest.TestCase):
         self.assertEqual(route.factory, None)
         self.assertTrue(route.generate.__class__ is types.FunctionType)
         self.assertTrue(route.match.__class__ is types.FunctionType)
+        self.assertEqual(route.args, ['path'])
+        self.assertEqual(route.pregenerator, None)
 
     def test_match(self):
         route = self._makeOne('name', ':path')
@@ -41,6 +45,36 @@ class TestRoute(unittest.TestCase):
     def test_generate(self):
         route = self._makeOne('name', ':path')
         self.assertEqual(route.generate({'path':'abc'}), '/abc')
+
+    def test_gen(self):
+        request = DummyRequest({})
+        route = self._makeOne('name', ':path')
+        path, kw = route.gen(request, ('extra1', 'extra2'), {'path':1})
+        self.assertEqual(path, '/1/extra1/extra2')
+        self.assertEqual(kw, {'path':1})
+
+    def test_gen_no_elements(self):
+        request = DummyRequest({})
+        route = self._makeOne('name', ':path')
+        path, kw = route.gen(request, (), {'path':1})
+        self.assertEqual(path, '/1')
+        self.assertEqual(kw, {'path':1})
+
+    def test_gen_no_kwargs(self):
+        request = DummyRequest({})
+        route = self._makeOne('name', 'foo')
+        path, kw = route.gen(request, (), {})
+        self.assertEqual(path, '/foo')
+        self.assertEqual(kw, {})
+
+    def test_gen_with_pregenerator(self):
+        request = DummyRequest({})
+        def pregenerator(request, elements, kw):
+            return ('a',), {'path':2, '_app_url':'http://example.com:6543'}
+        route = self._makeOne('name', ':path', pregenerator=pregenerator)
+        path, kw = route.gen(request, ('extra1', 'extra2'), {'path':1})
+        self.assertEqual(path, '/2/a')
+        self.assertEqual(kw, {'path':2, '_app_url':'http://example.com:6543'})
 
 class RoutesMapperTests(unittest.TestCase):
     def setUp(self):
