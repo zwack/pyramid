@@ -168,6 +168,9 @@ normal application operations, the requesting user will need to possess the
 to invoke the ``blog_entry_add_view`` view.  If he does not, the
 :term:`Forbidden view` will be invoked.
 
+.. index::
+   pair: permission; default
+
 .. _setting_a_default_permission:
 
 Setting a Default Permission
@@ -212,6 +215,7 @@ When a default permission is registered:
 .. index::
    single: ACL
    single: access control list
+   pair: resource; ACL
 
 .. _assigning_acls:
 
@@ -513,7 +517,7 @@ which ACL permitted or denied the authorization based on
 authentication information.
 
 This behavior can also be turned on in the application ``.ini`` file
-by setting the ``debug_authorization`` key to ``true`` within the
+by setting the ``pyramid.debug_authorization`` key to ``true`` within the
 application's configuration section, e.g.:
 
 .. code-block:: ini
@@ -521,7 +525,7 @@ application's configuration section, e.g.:
 
   [app:main]
   use = egg:MyProject#app
-  debug_authorization = true
+  pyramid.debug_authorization = true
 
 With this debug flag turned on, the response sent to the browser will
 also contain security debugging information in its body.
@@ -562,7 +566,7 @@ that implements the following interface:
 .. code-block:: python
    :linenos:
 
-   class AuthenticationPolicy(object):
+   class IAuthenticationPolicy(object):
        """ An object representing a Pyramid authentication policy. """
 
        def authenticated_userid(self, request):

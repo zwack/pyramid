@@ -61,8 +61,8 @@ Here's some sample code that implements a minimal NotFound view callable:
    caused the not found view to be called.  The value of
    ``request.exception.message`` will be a value explaining why the not found
    error was raised.  This message will be different when the
-   ``debug_notfound`` environment setting is true than it is when it is
-   false.
+   ``pyramid.debug_notfound`` environment setting is true than it is when it
+   is false.
 
 .. warning:: When a NotFound view callable accepts an argument list as
    described in :ref:`request_and_context_view_definitions`, the ``context``
@@ -128,8 +128,8 @@ Here's some sample code that implements a minimal forbidden view:
    ``request.exception.message`` will be a value explaining why the forbidden
    was raised and ``request.exception.result`` will be extended information
    about the forbidden exception.  These messages will be different when the
-   ``debug_authorization`` environment setting is true than it is when it is
-   false.
+   ``pyramid.debug_authorization`` environment setting is true than it is when
+   it is false.
 
 .. index::
    single: request factory
@@ -218,7 +218,7 @@ Another (deprecated) mechanism which allows event subscribers more control
 when adding renderer global values exists in :ref:`adding_renderer_globals`.
 
 .. index::
-   single: renderer globals
+   single: adding renderer globals
 
 .. _adding_renderer_globals:
 
@@ -284,8 +284,8 @@ Using Response Callbacks
 
 Unlike many other web frameworks, :app:`Pyramid` does not eagerly create a
 global response object.  Adding a :term:`response callback` allows an
-application to register an action to be performed against a response object
-once it is created, usually in order to mutate it.
+application to register an action to be performed against whatever response
+object is returned by a view, usually in order to mutate the response.
 
 The :meth:`pyramid.request.Request.add_response_callback` method is used to
 register a response callback.
@@ -528,6 +528,7 @@ The default context URL generator is available for perusal as the class
 
 .. index::
    single: IResponse
+   single: special view responses
 
 .. _using_iresponse:
 
@@ -536,7 +537,8 @@ Changing How Pyramid Treats View Responses
 
 It is possible to control how Pyramid treats the result of calling a view
 callable on a per-type basis by using a hook involving
-:meth:`pyramid.config.Configurator.add_response_adapter`.
+:meth:`pyramid.config.Configurator.add_response_adapter` or the
+:class:`~pyramid.response.response_adapter` decorator.
 
 .. note:: This feature is new as of Pyramid 1.1.
 
@@ -600,6 +602,9 @@ to make sure the object implements every attribute and method outlined in
 :class:`pyramid.interfaces.IResponse` and you'll have to ensure that it's
 marked up with ``zope.interface.implements(IResponse)``:
 
+.. code-block:: python
+   :linenos:
+
    from pyramid.interfaces import IResponse
    from zope.interface import implements
 
@@ -619,6 +624,29 @@ An IResponse adapter for ``webob.Response`` (as opposed to
 startup time, as by their nature, instances of this class (and instances of
 subclasses of the class) will natively provide IResponse.  The adapter
 registered for ``webob.Response`` simply returns the response object.
+
+Instead of using :meth:`pyramid.config.Configurator.add_response_adapter`,
+you can use the :class:`pyramid.response.response_adapter` decorator:
+
+.. code-block:: python
+   :linenos:
+
+   from pyramid.response import Response
+   from pyramid.response import response_adapter
+
+   @response_adapter(str)
+   def string_response_adapter(s):
+       response = Response(s)
+       return response
+
+The above example, when scanned, has the same effect as:
+
+.. code-block:: python
+
+   config.add_response_adapter(string_response_adapter, str)
+
+The :class:`~pyramid.response.response_adapter` decorator will have no effect
+until activated by a :term:`scan`.
 
 .. index::
    single: view mapper
