@@ -154,7 +154,7 @@ use :meth:`pyramid.config.Configuration.include`:
    config.include(add_routes)
 
 Using :meth:`~pyramid.config.Configuration.include` instead of calling the
-function directly provides a modicum of automated conflict resolution, with
+function directly provides some automated conflict resolution, with
 the configuration statements you define in the calling code overriding those
 of the included function.  See also :ref:`automatic_conflict_resolution` and
 :ref:`including_configuration`.
@@ -348,6 +348,64 @@ Python name` to a function or a module.
 
 .. note: See :ref:`the_include_tag` for a declarative alternative to
    the :meth:`~pyramid.config.Configurator.include` method.
+
+Mounting Routes at a Prefix
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note:: The ``route_prefix`` argument to
+   :meth:`~pyramid.config.Configurator.include` is new as of :app:`Pyramid`
+   1.1.1.
+
+The :meth:`~pyramid.config.Configuration.include` method accepts a
+``route_prefix`` parameter which will affect calls to
+:meth:`~pyramid.config.Configurator.add_route` from within the included
+configuration block.
+
+This provides a way to write packages that serve a specific purpose using
+:term:`URL Dispatch` in a way that is simple to integrate into arbitrary
+locations within an application's URL structure.
+
+For example, we have a package that allows us to manage the users in our
+system. It defines its own set of functionality, views, and templates.
+
+.. code-block:: python
+   :linenos:
+
+   # myapp/usermgmt/__init__.py
+
+   def includeme(config):
+       config.add_route('users', '/')
+       config.add_route('user_id', '/{id}')
+       config.add_route('user_edit', '/{id}/edit')
+
+       config.add_view(...)
+
+The package is *mounted* into our application using
+:meth:`~pyramid.config.Configuration.include` and the ``route_prefix``
+parameter to modify the URLs to be hosted at ``/users``.
+
+.. code-block:: python
+   :linenos:
+
+   # myapp/__init__.py
+
+   config.include('myapp.usermgmt', route_prefix='/users')
+
+   config.add_route('home', '/')
+
+Our application will support the following route patterns:
+
++--------------------------------+
+| Name       | Pattern           |
++================================+
+| home       | /                 |
+| users      | /users            |
+| user_id    | /users/{id}       |
+| user_edit  | /users/{id}/edit  |
++--------------------------------+
+
+This compounds if the included package chooses to include another package
+at a ``route_prefix`` relative to itself.
 
 .. _twophase_config:
 
