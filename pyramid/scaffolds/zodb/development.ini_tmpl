@@ -7,12 +7,12 @@ pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.debug_templates = true
 pyramid.default_locale_name = en
+pyramid.include = pyramid_debugtoolbar
 
 zodb_uri = file://%(here)s/Data.fs?connection_cache_size=20000
 
 [pipeline:main]
 pipeline =
-    egg:WebError#evalerror
     egg:repoze.zodbconn#closer
     egg:repoze.retry#retry
     tm

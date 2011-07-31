@@ -13,6 +13,7 @@ requires = [
     'repoze.retry',
     'ZODB3',
     'WebError',
+    'pyramid_debugtoolbar',
     ]
 
 setup(name='{{project}}',
