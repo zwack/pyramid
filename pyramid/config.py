@@ -304,7 +304,6 @@ class Configurator(object):
         self.package = name_resolver.package
         self.registry = registry
         self.autocommit = autocommit
-        self.owned_routes = set()
         if registry is None:
             registry = Registry(self.package_name)
             self.registry = registry
@@ -1917,7 +1916,6 @@ class Configurator(object):
                 bases = (IRequest,)
             else:
                 bases = ()
-            self.owned_routes.add(name)
             request_iface = route_request_iface(name, bases)
             self.registry.registerUtility(
                 request_iface, IRouteRequest, name=name)
@@ -1925,15 +1923,6 @@ class Configurator(object):
             view_info = deferred_views.pop(name, ())
             for info in view_info:
                 self.add_view(**info)
-        elif name not in self.owned_routes:
-            warnings.warn(
-                'Attempting to register a route "%s" which was not created '
-                'by this Configurator. This may indicate a conflict between '
-                'route names used in different packages. For example, this '
-                'will happen if a route named "%s" was added in different '
-                'config.include() sections.' % (name,name),
-                UserWarning,
-                3)
 
         # deprecated adding views from add_route
         if any([view, view_context, view_permission, view_renderer,
@@ -1954,6 +1943,9 @@ class Configurator(object):
             pattern = path
         if pattern is None:
             raise ConfigurationError('"pattern" argument may not be None')
+
+        discriminator = ('route', name)
+        self.action(discriminator, None)
 
         # wrap defaults into a pregenerator
         if defaults:
