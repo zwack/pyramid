@@ -8,11 +8,18 @@ import zope.deprecation
 from paste.deploy import loadapp
 from paste.script.command import Command
 
-from pyramid.scripting import get_root
+from pyramid.interfaces import IMultiView
+from pyramid.interfaces import ITweens
+
 from pyramid.scripting import prepare
 from pyramid.util import DottedNameResolver
 
+from pyramid.tweens import MAIN
+from pyramid.tweens import INGRESS
+
 from pyramid.scaffolds import PyramidTemplate # bw compat
+PyramidTemplate = PyramidTemplate # pyflakes
+
 zope.deprecation.deprecated(
     'PyramidTemplate', ('pyramid.paster.PyramidTemplate was moved to '
                         'pyramid.scaffolds.PyramidTemplate in Pyramid 1.1'),
@@ -82,14 +89,8 @@ def bootstrap(config_uri, request=None):
     env['app'] = app
     return env
 
-_marker = object()
-
 class PCommand(Command):
-    get_app = staticmethod(get_app) # hook point
-    get_root = staticmethod(get_root) # hook point
-    group_name = 'pyramid'
-    interact = (interact,) # for testing
-    loadapp = (loadapp,) # for testing
+    bootstrap = (bootstrap,) # testing
     verbose = 3
 
     def __init__(self, *arg, **kw):
@@ -128,31 +129,39 @@ class PShellCommand(PCommand):
                       action='store_true',
                       dest='disable_ipython',
                       help="Don't use IPython even if it is available")
+    parser.add_option('--setup',
+                      dest='setup',
+                      help=("A callable that will be passed the environment "
+                            "before it is made available to the shell. This "
+                            "option will override the 'setup' key in the "
+                            "[pshell] ini section."))
 
-    bootstrap = (bootstrap,) # testing
     ConfigParser = ConfigParser.ConfigParser # testing
 
+    loaded_objects = {}
+    object_help = {}
+    setup = None
+
     def pshell_file_config(self, filename):
-        resolver = DottedNameResolver(None)
-        self.loaded_objects = {}
-        self.object_help = {}
         config = self.ConfigParser()
         config.read(filename)
         try:
             items = config.items('pshell')
         except ConfigParser.NoSectionError:
             return
-        for k, v in items:
-            self.loaded_objects[k] = resolver.maybe_resolve(v)
-            self.object_help[k] = v
 
-    def command(self, IPShell=_marker):
-        # IPShell passed to command method is for testing purposes
-        if IPShell is _marker: # pragma: no cover
-            try:
-                from IPython.Shell import IPShell
-            except ImportError:
-                IPShell = None
+        resolver = DottedNameResolver(None)
+        self.loaded_objects = {}
+        self.object_help = {}
+        self.setup = None
+        for k, v in items:
+            if k == 'setup':
+                self.setup = v
+            else:
+                self.loaded_objects[k] = resolver.maybe_resolve(v)
+                self.object_help[k] = v
+
+    def command(self, shell=None):
         config_uri = self.args[0]
         config_file = config_uri.split('#', 1)[0]
         self.logging_file_config(config_file)
@@ -173,6 +182,24 @@ class PShellCommand(PCommand):
         env_help['root_factory'] = (
             'Default root factory used to create `root`.')
 
+        # override use_script with command-line options
+        if self.options.setup:
+            self.setup = self.options.setup
+
+        if self.setup:
+            # store the env before muddling it with the script
+            orig_env = env.copy()
+
+            # call the setup callable
+            resolver = DottedNameResolver(None)
+            setup = resolver.maybe_resolve(self.setup)
+            setup(env)
+
+            # remove any objects from default help that were overidden
+            for k, v in env.iteritems():
+                if k not in orig_env or env[k] != orig_env[k]:
+                    env_help[k] = v
+
         # load the pshell section of the ini file
         env.update(self.loaded_objects)
 
@@ -182,7 +209,7 @@ class PShellCommand(PCommand):
                 del env_help[k]
 
         # generate help text
-        help = '\n'
+        help = ''
         if env_help:
             help += 'Environment:'
             for var in sorted(env_help.keys()):
@@ -193,23 +220,52 @@ class PShellCommand(PCommand):
             for var in sorted(self.object_help.keys()):
                 help += '\n  %-12s %s' % (var, self.object_help[var])
 
-        help += '\n'
+        if shell is None and not self.options.disable_ipython:
+            shell = self.make_ipython_v0_11_shell()
+            if shell is None:
+                shell = self.make_ipython_v0_10_shell()
 
-        if (IPShell is None) or self.options.disable_ipython:
+        if shell is None:
+            shell = self.make_default_shell()
+
+        try:
+            shell(env, help)
+        finally:
+            closer()
+
+    def make_default_shell(self, interact=interact):
+        def shell(env, help):
             cprt = 'Type "help" for more information.'
             banner = "Python %s on %s\n%s" % (sys.version, sys.platform, cprt)
-            banner += '\n' + help
+            banner += '\n\n' + help + '\n'
+            interact(banner, local=env)
+        return shell
+
+    def make_ipython_v0_11_shell(self, IPShellFactory=None):
+        if IPShellFactory is None: # pragma: no cover
             try:
-                self.interact[0](banner, local=env)
-            finally:
-                closer()
-        else:
+                from IPython.frontend.terminal.embed import (
+                    InteractiveShellEmbed)
+                IPShellFactory = InteractiveShellEmbed
+            except ImportError:
+                return None
+        def shell(env, help):
+            IPShell = IPShellFactory(banner2=help + '\n', user_ns=env)
+            IPShell()
+        return shell
+
+    def make_ipython_v0_10_shell(self, IPShellFactory=None):
+        if IPShellFactory is None: # pragma: no cover
             try:
-                shell = IPShell(argv=[], user_ns=env)
-                shell.IP.BANNER = shell.IP.BANNER + help
-                shell.mainloop()
-            finally:
-                closer()
+                from IPython.Shell import IPShellEmbed
+                IPShellFactory = IPShellEmbed
+            except ImportError:
+                return None
+        def shell(env, help):
+            IPShell = IPShellFactory(argv=[], user_ns=env)
+            IPShell.set_banner(IPShell.IP.BANNER + '\n' + help + '\n')
+            IPShell()
+        return shell
 
 BFGShellCommand = PShellCommand # b/w compat forever
 
@@ -229,10 +285,6 @@ class PRoutesCommand(PCommand):
 
         $ paster proutes myapp.ini#main
 
-    .. note:: You should use a ``section_name`` that refers to the
-              actual ``app`` section in the config file that points at
-              your Pyramid app without any middleware wrapping, or this
-              command will almost certainly fail.
     """
     summary = "Print all URL dispatch routes related to a Pyramid application"
     min_args = 1
@@ -241,9 +293,8 @@ class PRoutesCommand(PCommand):
 
     parser = Command.standard_parser(simulate=True)
 
-    def _get_mapper(self, app):
+    def _get_mapper(self, registry):
         from pyramid.config import Configurator
-        registry = app.registry
         config = Configurator(registry = registry)
         return config.get_routes_mapper()
 
@@ -256,9 +307,9 @@ class PRoutesCommand(PCommand):
         from pyramid.interfaces import IView
         from zope.interface import Interface
         config_uri = self.args[0]
-        app = self.get_app(config_uri, loadapp=self.loadapp[0])
-        registry = app.registry
-        mapper = self._get_mapper(app)
+        env = self.bootstrap[0](config_uri)
+        registry = env['registry']
+        mapper = self._get_mapper(registry)
         if mapper is not None:
             routes = mapper.get_routes()
             fmt = '%-15s %-30s %-25s'
@@ -280,8 +331,6 @@ class PRoutesCommand(PCommand):
                     self.out(fmt % (route.name, route.pattern, view_callable))
 
 
-from pyramid.interfaces import IMultiView
-
 class PViewsCommand(PCommand):
     """Print, for a given URL, the views that might match. Underneath each
     potentially matching route, list the predicates required. Underneath
@@ -300,10 +349,6 @@ class PViewsCommand(PCommand):
 
         $ paster proutes myapp.ini#main url
 
-    .. note:: You should use a ``section_name`` that refers to the
-              actual ``app`` section in the config file that points at
-              your Pyramid app without any middleware wrapping, or this
-              command will almost certainly fail.
     """
     summary = "Print all views in an application that might match a URL"
     min_args = 2
@@ -505,8 +550,8 @@ class PViewsCommand(PCommand):
         config_uri, url = self.args
         if not url.startswith('/'):
             url = '/%s' % url
-        app = self.get_app(config_uri, loadapp=self.loadapp[0])
-        registry = app.registry
+        env = self.bootstrap[0](config_uri)
+        registry = env['registry']
         view = self._find_view(url, registry)
         self.out('')
         self.out("URL = %s" % url)
@@ -527,3 +572,84 @@ class PViewsCommand(PCommand):
                 self.out("    Not found.")
         self.out('')
 
+
+class PTweensCommand(PCommand):
+    """Print all implicit and explicit :term:`tween` objects used by a
+    Pyramid application.  The handler output includes whether the system is
+    using an explicit tweens ordering (will be true when the
+    ``pyramid.tweens`` setting is used) or an implicit tweens ordering (will
+    be true when the ``pyramid.tweens`` setting is *not* used).
+    
+    This command accepts one positional argument:
+
+    ``config_uri`` -- specifies the PasteDeploy config file to use for the
+    interactive shell. The format is ``inifile#name``. If the name is left
+    off, ``main`` will be assumed.
+
+    Example::
+
+        $ paster ptweens myapp.ini#main
+
+    """
+    summary = "Print all tweens related to a Pyramid application"
+    min_args = 1
+    max_args = 1
+    stdout = sys.stdout
+
+    parser = Command.standard_parser(simulate=True)
+
+    def _get_tweens(self, registry):
+        from pyramid.config import Configurator
+        config = Configurator(registry = registry)
+        return config.registry.queryUtility(ITweens)
+
+    def out(self, msg): # pragma: no cover
+        print msg
+
+    def show_implicit(self, tweens):
+        implicit = tweens.implicit()
+        fmt = '%-10s  %-50s  %-15s'
+        self.out(fmt % ('Position', 'Name', 'Alias'))
+        self.out(fmt % (
+            '-'*len('Position'), '-'*len('Name'), '-'*len('Alias')))
+        self.out(fmt % ('-', '-', INGRESS))
+        for pos, (name, _) in enumerate(implicit):
+            alias = tweens.name_to_alias.get(name, None)
+            self.out(fmt % (pos, name, alias))
+        self.out(fmt % ('-', '-', MAIN))
+
+    def show_explicit(self, tweens):
+        explicit = tweens.explicit
+        fmt = '%-10s  %-65s'
+        self.out(fmt % ('Position', 'Name'))
+        self.out(fmt % ('-'*len('Position'), '-'*len('Name')))
+        self.out(fmt % ('-', INGRESS))
+        for pos, (name, _) in enumerate(explicit):
+            self.out(fmt % (pos, name))
+        self.out(fmt % ('-', MAIN))
+    
+    def command(self):
+        config_uri = self.args[0]
+        env = self.bootstrap[0](config_uri)
+        registry = env['registry']
+        tweens = self._get_tweens(registry)
+        if tweens is not None:
+            explicit = tweens.explicit
+            if explicit:
+                self.out('"pyramid.tweens" config value set '
+                         '(explicitly ordered tweens used)')
+                self.out('')
+                self.out('Explicit Tween Chain (used)')
+                self.out('')
+                self.show_explicit(tweens)
+                self.out('')
+                self.out('Implicit Tween Chain (not used)')
+                self.out('')
+                self.show_implicit(tweens)
+            else:
+                self.out('"pyramid.tweens" config value NOT set '
+                         '(implicitly ordered tweens used)')
+                self.out('')
+                self.out('Implicit Tween Chain')
+                self.out('')
+                self.show_implicit(tweens)

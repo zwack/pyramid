@@ -7,7 +7,6 @@ from pyramid.interfaces import IRoute
 from pyramid.interfaces import IRouteGroup
 from pyramid.interfaces import IRoutesMapper
 
-from pyramid.compat import all
 from pyramid.encode import url_quote
 from pyramid.exceptions import URLDecodeError
 from pyramid.traversal import traversal_path
@@ -15,7 +14,6 @@ from pyramid.traversal import quote_path_segment
 from pyramid.util import join_elements
 
 from zope.interface import implements
-
 
 _marker = object()
 

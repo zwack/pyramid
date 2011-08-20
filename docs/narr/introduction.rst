@@ -30,7 +30,7 @@ create web applications.
    own via a set of libraries if the framework provides a set of
    facilities that fits your application requirements.
 
-Pyramid attempts to follow follow these design and engineering principles:
+Pyramid attempts to follow these design and engineering principles:
 
 Simplicity
   :app:`Pyramid` takes a *"pay only for what you eat"* approach.  You can get
@@ -67,8 +67,7 @@ Openness
   open source license <http://repoze.org/license.html>`_.
 
 .. index::
-   single: Pylons
-   single: repoze namespace package
+   single: Pylons Project
 
 What Is The Pylons Project?
 ---------------------------

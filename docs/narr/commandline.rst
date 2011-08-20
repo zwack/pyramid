@@ -20,18 +20,19 @@ For a big application with several views, it can be hard to keep the view
 configuration details in your head, even if you defined all the views
 yourself. You can use the ``paster pviews`` command in a terminal window to
 print a summary of matching routes and views for a given URL in your
-application. The ``paster pviews`` command accepts two arguments. The
-first argument to ``pviews`` is the path to your application's ``.ini`` file
-and section name inside the ``.ini`` file which points to your application.
-This should be of the format ``config_file#section_name``. The second argument
-is the URL to test for matching views.
+application. The ``paster pviews`` command accepts two arguments. The first
+argument to ``pviews`` is the path to your application's ``.ini`` file and
+section name inside the ``.ini`` file which points to your application.  This
+should be of the format ``config_file#section_name``. The second argument is
+the URL to test for matching views.  The ``section_name`` may be omitted; if
+it is, it's considered to be ``main``.
 
 Here is an example for a simple view configuration using :term:`traversal`:
 
 .. code-block:: text
    :linenos:
 
-   $ ../bin/paster pviews development.ini tutorial /FrontPage
+   $ ../bin/paster pviews development.ini#tutorial /FrontPage
 
    URL = /FrontPage
 
@@ -125,91 +126,84 @@ application runs "for real".  To do so, use the ``paster pshell`` command.
 The argument to ``pshell`` follows the format ``config_file#section_name``
 where ``config_file`` is the path to your application's ``.ini`` file and
 ``section_name`` is the ``app`` section name inside the ``.ini`` file which
-points to *your application* as opposed to any other section within the
-``.ini`` file.  For example, if your application ``.ini`` file might have a
-``[app:MyProject]`` section that looks like so:
+points to your application.  For example, if your application ``.ini`` file
+might have a ``[app:MyProject]`` section that looks like so:
 
 .. code-block:: ini
    :linenos:
 
    [app:MyProject]
    use = egg:MyProject
-   reload_templates = true
-   debug_authorization = false
-   debug_notfound = false
-   debug_templates = true
-   default_locale_name = en
+   pyramid.reload_templates = true
+   pyramid.debug_authorization = false
+   pyramid.debug_notfound = false
+   pyramid.debug_templates = true
+   pyramid.default_locale_name = en
 
 If so, you can use the following command to invoke a debug shell using the
 name ``MyProject`` as a section name:
 
 .. code-block:: text
 
-   [chrism@vitaminf shellenv]$ ../bin/paster pshell development.ini#MyProject
-   Python 2.4.5 (#1, Aug 29 2008, 12:27:37)
-   [GCC 4.0.1 (Apple Inc. build 5465)] on darwin
+    chrism@thinko env26]$ bin/paster pshell starter/development.ini#MyProject
+    Python 2.6.5 (r265:79063, Apr 29 2010, 00:31:32) 
+    [GCC 4.4.3] on linux2
+    Type "help" for more information.
 
-   Default Variables:
-     app          The WSGI Application
-     root         The root of the default resource tree.
-     registry     The Pyramid registry object.
-     settings     The Pyramid settings object.
+    Environment:
+      app          The WSGI application.
+      registry     Active Pyramid registry.
+      request      Active request object.
+      root         Root of the default resource tree.
+      root_factory Default root factory used to create `root`.
 
-   >>> root
-   <myproject.resources.MyResource object at 0x445270>
-   >>> registry
-   <Registry myproject>
-   >>> settings['debug_notfound']
-   False
-   >>> from myproject.views import my_view
-   >>> from pyramid.request import Request
-   >>> r = Request.blank('/')
-   >>> my_view(r)
-   {'project': 'myproject'}
+    >>> root
+    <myproject.resources.MyResource object at 0x445270>
+    >>> registry
+    <Registry myproject>
+    >>> registry.settings['pyramid.debug_notfound']
+    False
+    >>> from myproject.views import my_view
+    >>> from pyramid.request import Request
+    >>> r = Request.blank('/')
+    >>> my_view(r)
+    {'project': 'myproject'}
 
 The WSGI application that is loaded will be available in the shell as the
-``app`` global. Also, if the application that is loaded is the
-:app:`Pyramid` app with no surrounding middleware, the ``root`` object
-returned by the default :term:`root factory`, ``registry``, and ``settings``
-will be available.
+``app`` global. Also, if the application that is loaded is the :app:`Pyramid`
+app with no surrounding middleware, the ``root`` object returned by the
+default :term:`root factory`, ``registry``, and ``request`` will be
+available.
 
-The interactive shell will not be able to load some of the globals like
-``root``, ``registry`` and ``settings`` if the section name specified when
-loading ``pshell`` is not referencing your :app:`Pyramid` application directly.
-For example, if you have the following ``.ini`` file content:
+You can also simply rely on the ``main`` default section name by omitting any
+hash after the filename:
 
-.. code-block:: ini
-   :linenos:
+.. code-block:: text
 
-   [app:MyProject]
-   use = egg:MyProject
-   reload_templates = true
-   debug_authorization = false
-   debug_notfound = false
-   debug_templates = true
-   default_locale_name = en
-
-   [pipeline:main]
-   pipeline =
-       egg:WebError#evalerror
-       MyProject
-
-Use ``MyProject`` instead of ``main`` as the section name argument to
-``pshell`` against the above ``.ini`` file (e.g. ``paster pshell
-development.ini#MyProject``).
+    chrism@thinko env26]$ bin/paster pshell starter/development.ini
 
 Press ``Ctrl-D`` to exit the interactive shell (or ``Ctrl-Z`` on Windows).
+
+.. index::
+   pair: pshell; extending
 
 .. _extending_pshell:
 
 Extending the Shell
 ~~~~~~~~~~~~~~~~~~~
 
-It is sometimes convenient when using the interactive shell often to have
-some variables significant to your application already loaded as globals
-when you start the ``pshell``. To facilitate this, ``pshell`` will look
-for a special ``[pshell]`` section in your INI file and expose the subsequent
-key/value pairs to the shell.
+It is convenient when using the interactive shell often to have some
+variables significant to your application already loaded as globals when
+you start the ``pshell``. To facilitate this, ``pshell`` will look for a
+special ``[pshell]`` section in your INI file and expose the subsequent
+key/value pairs to the shell.  Each key is a variable name that will be
+global within the pshell session; each value is a :term:`dotted Python name`.
+If specified, the special key ``setup`` should be a :term:`dotted Python name`
+pointing to a callable that accepts the dictionary of globals that will
+be loaded into the shell. This allows for some custom initializing code
+to be executed each time the ``pshell`` is run. The ``setup`` callable
+can also be specified from the commandline using the ``--setup`` option
+which will override the key in the INI file.
 
 For example, you want to expose your model to the shell, along with the
 database session so that you can mutate the model on an actual database.
@@ -219,13 +213,61 @@ Here, we'll assume your model is stored in the ``myapp.models`` package.
    :linenos:
 
    [pshell]
+   setup = myapp.lib.pshell.setup
    m = myapp.models
    session = myapp.models.DBSession
    t = transaction
 
+By defining the ``setup`` callable, we will create the module
+``myapp.lib.pshell`` containing a callable named ``setup`` that will receive
+the global environment before it is exposed to the shell. Here we mutate the
+environment's request as well as add a new value containing a WebTest version
+of the application to which we can easily submit requests.
+
+.. code-block:: python
+    :linenos:
+
+    # myapp/lib/pshell.py
+    from webtest import TestApp
+
+    def setup(env):
+        env['request'].host = 'www.example.com'
+        env['request'].scheme = 'https'
+        env['testapp'] = TestApp(env['app'])
+
 When this INI file is loaded, the extra variables ``m``, ``session`` and
-``t`` will be available for use immediately. This happens regardless of
-whether the ``registry`` and other special variables are loaded.
+``t`` will be available for use immediately. Since a ``setup`` callable
+was also specified, it is executed and a new variable ``testapp`` is
+exposed, and the request is configured to generate urls from the host
+``http://www.example.com``. For example:
+
+.. code-block:: text
+
+    chrism@thinko env26]$ bin/paster pshell starter/development.ini
+    Python 2.6.5 (r265:79063, Apr 29 2010, 00:31:32) 
+    [GCC 4.4.3] on linux2
+    Type "help" for more information.
+
+    Environment:
+      app          The WSGI application.
+      registry     Active Pyramid registry.
+      request      Active request object.
+      root         Root of the default resource tree.
+      root_factory Default root factory used to create `root`.
+      testapp      <webtest.TestApp object at ...>
+
+    Custom Variables:
+      m            myapp.models
+      session      myapp.models.DBSession
+      t            transaction
+
+    >>> testapp.get('/')
+    <200 OK text/html body='<!DOCTYPE...l>\n'/3337>
+    >>> request.route_url('home')
+    'https://www.example.com/'
+
+.. index::
+   single: IPython
 
 IPython
 ~~~~~~~
@@ -258,9 +300,10 @@ You can use the ``paster proutes`` command in a terminal window to print a
 summary of routes related to your application.  Much like the ``paster
 pshell`` command (see :ref:`interactive_shell`), the ``paster proutes``
 command accepts one argument with the format ``config_file#section_name``.
-The ``config_file`` is the path to your application's ``.ini`` file,
-and ``section_name`` is the ``app`` section name inside the ``.ini`` file
-which points to your application.
+The ``config_file`` is the path to your application's ``.ini`` file, and
+``section_name`` is the ``app`` section name inside the ``.ini`` file which
+points to your application.  By default, the ``section_name`` is ``main`` and
+can be omitted.
 
 For example:
 
@@ -285,6 +328,93 @@ route pattern.  The view column may show ``None`` if no associated view
 callable could be found.  If no routes are configured within your
 application, nothing will be printed to the console when ``paster proutes``
 is executed.
+
+.. index::
+   pair: tweens; printing
+   single: paster ptweens
+   single: ptweens
+
+.. _displaying_tweens:
+
+Displaying "Tweens"
+-------------------
+
+A :term:`tween` is a bit of code that sits between the main Pyramid
+application request handler and the WSGI application which calls it.  A user
+can get a representation of both the implicit tween ordering (the ordering
+specified by calls to :meth:`pyramid.config.Configurator.add_tween`) and the
+explicit tween ordering (specified by the ``pyramid.tweens`` configuration
+setting) orderings using the ``paster ptweens`` command.  Tween factories
+will show up represented by their standard Python dotted name in the
+``paster ptweens`` output.
+
+For example, here's the ``paster pwteens`` command run against a system
+configured without any explicit tweens:
+
+.. code-block:: text
+   :linenos:
+
+   [chrism@thinko pyramid]$ paster ptweens development.ini 
+   "pyramid.tweens" config value NOT set (implicitly ordered tweens used)
+
+   Implicit Tween Chain
+
+   Position    Name                                                Alias 
+   --------    ----                                                -----
+   -           -                                                   INGRESS
+   0           pyramid_debugtoolbar.toolbar.toolbar_tween_factory  pdbt
+   1           pyramid.tweens.excview_tween_factory                excview
+   -           -                                                   MAIN
+
+Here's the ``paster pwteens`` command run against a system configured *with*
+explicit tweens defined in its ``development.ini`` file:
+
+.. code-block:: text
+   :linenos:
+
+   [chrism@thinko pyramid]$ paster ptweens development.ini  
+   "pyramid.tweens" config value set (explicitly ordered tweens used)
+
+   Explicit Tween Chain (used)
+
+   Position    Name                                                             
+   --------    ----                                                             
+   -           INGRESS                                                          
+   0           starter.tween_factory2                                           
+   1           starter.tween_factory1                                           
+   2           pyramid.tweens.excview_tween_factory                             
+   -           MAIN                                                             
+
+   Implicit Tween Chain (not used)
+
+   Position    Name                                                Alias
+   --------    ----                                                -----
+   -           -                                                   INGRESS
+   0           pyramid_debugtoolbar.toolbar.toolbar_tween_factory  pdbt
+   1           pyramid.tweens.excview_tween_factory                excview
+   -           -                                                   MAIN
+
+Here's the application configuration section of the ``development.ini`` used
+by the above ``paster ptweens`` command which reprorts that the explicit
+tween chain is used:
+
+.. code-block:: text
+   :linenos:
+
+   [app:starter]
+   use = egg:starter
+   reload_templates = true
+   debug_authorization = false
+   debug_notfound = false
+   debug_routematch = false
+   debug_templates = true
+   default_locale_name = en
+   pyramid.include = pyramid_debugtoolbar
+   pyramid.tweens = starter.tween_factory2
+                    starter.tween_factory1
+                    pyramid.tweens.excview_tween_factory
+
+See :ref:`registering_tweens` for more information about tweens.
 
 .. _writing_a_script:
 
@@ -367,8 +497,13 @@ example above looks like so:
 .. code-block:: ini
 
    [pipeline:main]
-   pipeline = egg:WebError#evalerror
+   pipeline = translogger
               another
+
+   [filter:translogger]
+   filter_app_factory = egg:Paste#translogger
+   setup_console_handler = False
+   logger_name = wsgi
 
    [app:another]
    use = egg:MyProject
@@ -378,7 +513,8 @@ configuration implied by the ``[pipeline:main]`` section of your
 configuration file by default.  Specifying ``/path/to/my/development.ini`` is
 logically equivalent to specifying ``/path/to/my/development.ini#main``.  In
 this case, we'll be using a configuration that includes an ``app`` object
-which is wrapped in the WebError ``evalerror`` middleware.
+which is wrapped in the Paste "translogger" middleware (which logs requests
+to the console).
 
 You can also specify a particular *section* of the PasteDeploy ``.ini`` file
 to load instead of ``main``:
@@ -429,7 +565,7 @@ Now you can readily use Pyramid's APIs for generating URLs:
 
 .. code-block:: python
 
-   route_url('verify', env['request'], code='1337')
+   env['request'].route_url('verify', code='1337')
    # will return 'https://example.com/prefix/verify/1337'
 
 Cleanup

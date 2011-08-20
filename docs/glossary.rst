@@ -23,6 +23,11 @@ Glossary
      a subclass such as :class:`pyramid.httpexceptions.HTTPFound`.  See
      :ref:`webob_chapter` for information about response objects.
 
+   response adapter
+     A callable which accepts an arbitrary object and "converts" it to a
+     :class:`pyramid.response.Response` object.  See :ref:`using_iresponse`
+     for more information.
+
    Repoze
      "Repoze" is essentially a "brand" of software developed by `Agendaless
      Consulting <http://agendaless.com>`_ and a set of contributors.  The
@@ -840,11 +845,6 @@ Glossary
      `WebTest <http://pythonpaste.org/webtest/>`_ is a package which can help
      you write functional tests for your WSGI application.
 
-   WebError
-     WSGI middleware which can display debuggable traceback information in
-     the browser when an exception is raised by a Pyramid application.  See
-     http://pypi.python.org/pypi/WebError .
-
    view mapper
     A view mapper is a class which implements the
     :class:`pyramid.interfaces.IViewMapperFactory` interface, which performs
@@ -912,3 +912,36 @@ Glossary
      PyPy is an "alternative implementation of the Python
      language":http://pypy.org/
 
+   tween
+     A bit of code that sits between the Pyramid router's main request
+     handling function and the upstream WSGI component that uses
+     :app:`Pyramid` as its 'app'.  The word "tween" is a contraction of
+     "between".  A tween may be used by Pyramid framework extensions, to
+     provide, for example, Pyramid-specific view timing support, bookkeeping
+     code that examines exceptions before they are returned to the upstream
+     WSGI application, or a variety of other features.  Tweens behave a bit
+     like :term:`WSGI` 'middleware' but they have the benefit of running in a
+     context in which they have access to the Pyramid :term:`application
+     registry` as well as the Pyramid rendering machinery.  See
+     :ref:`registering_tweens`.
+
+   pyramid_debugtoolbar
+     A Pyramid add on which displays a helpful debug toolbar "on top of" HTML
+     pages rendered by your application, displaying request, routing, and
+     database information.  ``pyramid_debugtoolbar`` is configured into the
+     ``development.ini`` of all applications which use a Pyramid
+     :term:`scaffold`.  For more information, see
+     https://docs.pylonsproject.org/projects/pyramid_debugtoolbar/dev/ .
+
+   scaffold
+     A project template that helps users get started writing a Pyramid
+     application quickly.  Scaffolds are usually used via the ``paster
+     create`` command.
+
+   pyramid_exclog
+     A package which logs Pyramid application exception (error) information
+     to a standard Python logger.  This add-on is most useful when
+     used in production applications, because the logger can be configured to
+     log to a file, to UNIX syslog, to the Windows Event Log, or even to
+     email. See its `documentation
+     <https://docs.pylonsproject.org/projects/pyramid_exclog/dev/>`_.

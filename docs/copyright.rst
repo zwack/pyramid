@@ -1,7 +1,7 @@
 Copyright, Trademarks, and Attributions
 =======================================
 
-*The Pyramid Web Application Development Framework, Version 1.0*
+*The Pyramid Web Application Development Framework, Version 1.1*
 
 by Chris McDonough
 
@@ -55,7 +55,12 @@ Contributors:
   Ben Bangert, Blaise Laflamme, Rob Miller, Mike Orr, Carlos de la Guardia,
   Paul Everitt, Tres Seaver, John Shipman, Marius Gedminas, Chris Rossi,
   Joachim Krebs, Xavier Spriet, Reed O'Brien, William Chambers, Charlie
-  Choiniere, Jamaludin Ahmad, Graham Higgins, Patricio Paez.
+  Choiniere, Jamaludin Ahmad, Graham Higgins, Patricio Paez, Michael
+  Merickel, Eric Ongerth, Niall O'Higgins, Christoph Zwerschke, John
+  Anderson, Atsushi Odagiri, Kirk Strauser, JD Navarro, Joe Dallago,
+  Savoir-Faire Linux, Łukasz Fidosz, Christopher Lambacher, Claus Conrad,
+  Chris Beelby, Phil Jenvey and a number of people with only psuedonyms on
+  GitHub.
 
 Cover Designer:
    Hugues Laflamme of `Kemeneur <http://www.kemeneur.com/>`_.
@@ -67,6 +72,9 @@ Used with permission:
 
    The :ref:`much_ado_about_traversal_chapter` chapter is adapted,
    with permission, from an article written by Rob Miller.
+
+   The :ref:`logging_chapter` is adapted, with permission, from the Pylons
+   documentation logging chapter, originally written by Phil Jenvey.
 
 Print Production
 ----------------

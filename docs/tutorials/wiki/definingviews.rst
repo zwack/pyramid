@@ -86,10 +86,11 @@ resource named "FrontPage".  To do so, it returns an instance of the
 :class:`pyramid.httpexceptions.HTTPFound` class (instances of which implement
 the :class:`pyramid.interfaces.IResponse` interface like
 :class:`pyramid.response.Response` does).  The
-:func:`pyramid.url.resource_url` API.  :func:`pyramid.url.resource_url`
-constructs a URL to the ``FrontPage`` page resource
-(e.g. ``http://localhost:6543/FrontPage``), and uses it as the "location" of
-the HTTPFound response, forming an HTTP redirect.
+:meth:`pyramid.request.Request.resource_url` API.
+:meth:`pyramid.request.Request.resource_url` constructs a URL to the
+``FrontPage`` page resource (e.g. ``http://localhost:6543/FrontPage``), and
+uses it as the "location" of the HTTPFound response, forming an HTTP
+redirect.
 
 The ``view_page`` view function
 -------------------------------
@@ -319,4 +320,4 @@ browser.  The views we'll try are as follows:
 - To generate an error, visit ``http://localhost:6543/add_page`` which
   will generate an ``IndexError`` for the expression
   ``request.subpath[0]``.  You'll see an interactive traceback
-  facility provided by :term:`WebError`.
+  facility provided by :term:`pyramid_debugtoolbar`.

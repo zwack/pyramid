@@ -5,12 +5,9 @@ class TestPShellCommand(unittest.TestCase):
         from pyramid.paster import PShellCommand
         return PShellCommand
 
-    def _makeOne(self, patch_interact=True, patch_bootstrap=True,
-                 patch_config=True, patch_args=True, patch_options=True):
+    def _makeOne(self, patch_bootstrap=True, patch_config=True,
+                 patch_args=True, patch_options=True):
         cmd = self._getTargetClass()('pshell')
-        if patch_interact:
-            self.interact = DummyInteractor()
-            cmd.interact = (self.interact,)
         if patch_bootstrap:
             self.bootstrap = DummyBootstrap()
             cmd.bootstrap = (self.bootstrap,)
@@ -24,72 +21,133 @@ class TestPShellCommand(unittest.TestCase):
             class Options(object): pass
             self.options = Options()
             self.options.disable_ipython = True
+            self.options.setup = None
             cmd.options = self.options
         return cmd
 
-    def test_command_ipshell_is_None_ipython_enabled(self):
+    def test_make_default_shell(self):
         command = self._makeOne()
-        command.options.disable_ipython = True
-        command.command(IPShell=None)
+        interact = DummyInteractor()
+        shell = command.make_default_shell(interact)
+        shell({'foo': 'bar'}, 'a help message')
+        self.assertEqual(interact.local, {'foo': 'bar'})
+        self.assertTrue('a help message' in interact.banner)
+
+    def test_make_ipython_v0_11_shell(self):
+        command = self._makeOne()
+        ipshell_factory = DummyIPShellFactory()
+        shell = command.make_ipython_v0_11_shell(ipshell_factory)
+        shell({'foo': 'bar'}, 'a help message')
+        self.assertEqual(ipshell_factory.kw['user_ns'], {'foo': 'bar'})
+        self.assertTrue('a help message' in ipshell_factory.kw['banner2'])
+        self.assertTrue(ipshell_factory.shell.called)
+
+    def test_make_ipython_v0_10_shell(self):
+        command = self._makeOne()
+        ipshell_factory = DummyIPShellFactory()
+        shell = command.make_ipython_v0_10_shell(ipshell_factory)
+        shell({'foo': 'bar'}, 'a help message')
+        self.assertEqual(ipshell_factory.kw['argv'], [])
+        self.assertEqual(ipshell_factory.kw['user_ns'], {'foo': 'bar'})
+        self.assertTrue('a help message' in ipshell_factory.shell.banner)
+        self.assertTrue(ipshell_factory.shell.called)
+
+    def test_command_loads_default_shell(self):
+        command = self._makeOne()
+        shell = DummyShell()
+        command.make_ipython_v0_11_shell = lambda: None
+        command.make_ipython_v0_10_shell = lambda: None
+        command.make_default_shell = lambda: shell
+        command.command()
         self.assertTrue(self.config_factory.parser)
         self.assertEqual(self.config_factory.parser.filename,
                          '/foo/bar/myapp.ini')
         self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
-        self.assertEqual(self.interact.local, {
+        self.assertEqual(shell.env, {
             'app':self.bootstrap.app, 'root':self.bootstrap.root,
             'registry':self.bootstrap.registry,
             'request':self.bootstrap.request,
             'root_factory':self.bootstrap.root_factory,
         })
         self.assertTrue(self.bootstrap.closer.called)
-        self.assertTrue(self.interact.banner)
+        self.assertTrue(shell.help)
 
-    def test_command_ipshell_is_not_None_ipython_disabled(self):
+    def test_command_loads_default_shell_with_ipython_disabled(self):
         command = self._makeOne()
+        shell = DummyShell()
+        bad_shell = DummyShell()
+        command.make_ipython_v0_11_shell = lambda: bad_shell
+        command.make_ipython_v0_10_shell = lambda: bad_shell
+        command.make_default_shell = lambda: shell
         command.options.disable_ipython = True
-        command.command(IPShell='notnone')
+        command.command()
         self.assertTrue(self.config_factory.parser)
         self.assertEqual(self.config_factory.parser.filename,
                          '/foo/bar/myapp.ini')
         self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
-        self.assertEqual(self.interact.local, {
+        self.assertEqual(shell.env, {
             'app':self.bootstrap.app, 'root':self.bootstrap.root,
             'registry':self.bootstrap.registry,
             'request':self.bootstrap.request,
             'root_factory':self.bootstrap.root_factory,
         })
+        self.assertEqual(bad_shell.env, {})
         self.assertTrue(self.bootstrap.closer.called)
-        self.assertTrue(self.interact.banner)
+        self.assertTrue(shell.help)
 
-    def test_command_ipython_enabled(self):
-        command = self._makeOne(patch_interact=False)
+    def test_command_loads_ipython_v0_11(self):
+        command = self._makeOne()
+        shell = DummyShell()
+        command.make_ipython_v0_11_shell = lambda: shell
+        command.make_ipython_v0_10_shell = lambda: None
+        command.make_default_shell = lambda: None
         command.options.disable_ipython = False
-        dummy_shell_factory = DummyIPShellFactory()
-        command.command(IPShell=dummy_shell_factory)
+        command.command()
         self.assertTrue(self.config_factory.parser)
         self.assertEqual(self.config_factory.parser.filename,
                          '/foo/bar/myapp.ini')
         self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
-        self.assertEqual(dummy_shell_factory.shell.local_ns, {
+        self.assertEqual(shell.env, {
             'app':self.bootstrap.app, 'root':self.bootstrap.root,
             'registry':self.bootstrap.registry,
             'request':self.bootstrap.request,
             'root_factory':self.bootstrap.root_factory,
         })
-        self.assertEqual(dummy_shell_factory.shell.global_ns, {})
         self.assertTrue(self.bootstrap.closer.called)
+        self.assertTrue(shell.help)
+
+    def test_command_loads_ipython_v0_10(self):
+        command = self._makeOne()
+        shell = DummyShell()
+        command.make_ipython_v0_11_shell = lambda: None
+        command.make_ipython_v0_10_shell = lambda: shell
+        command.make_default_shell = lambda: None
+        command.options.disable_ipython = False
+        command.command()
+        self.assertTrue(self.config_factory.parser)
+        self.assertEqual(self.config_factory.parser.filename,
+                         '/foo/bar/myapp.ini')
+        self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
+        self.assertEqual(shell.env, {
+            'app':self.bootstrap.app, 'root':self.bootstrap.root,
+            'registry':self.bootstrap.registry,
+            'request':self.bootstrap.request,
+            'root_factory':self.bootstrap.root_factory,
+        })
+        self.assertTrue(self.bootstrap.closer.called)
+        self.assertTrue(shell.help)
 
     def test_command_loads_custom_items(self):
         command = self._makeOne()
         model = Dummy()
         self.config_factory.items = [('m', model)]
-        command.options.disable_ipython = True
-        command.command(IPShell=None)
+        shell = DummyShell()
+        command.command(shell)
         self.assertTrue(self.config_factory.parser)
         self.assertEqual(self.config_factory.parser.filename,
                          '/foo/bar/myapp.ini')
         self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
-        self.assertEqual(self.interact.local, {
+        self.assertEqual(shell.env, {
             'app':self.bootstrap.app, 'root':self.bootstrap.root,
             'registry':self.bootstrap.registry,
             'request':self.bootstrap.request,
@@ -97,25 +155,96 @@ class TestPShellCommand(unittest.TestCase):
             'm':model,
         })
         self.assertTrue(self.bootstrap.closer.called)
-        self.assertTrue(self.interact.banner)
+        self.assertTrue(shell.help)
+
+    def test_command_setup(self):
+        command = self._makeOne()
+        def setup(env):
+            env['a'] = 1
+            env['root'] = 'root override'
+        self.config_factory.items = [('setup', setup)]
+        shell = DummyShell()
+        command.command(shell)
+        self.assertTrue(self.config_factory.parser)
+        self.assertEqual(self.config_factory.parser.filename,
+                         '/foo/bar/myapp.ini')
+        self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
+        self.assertEqual(shell.env, {
+            'app':self.bootstrap.app, 'root':'root override',
+            'registry':self.bootstrap.registry,
+            'request':self.bootstrap.request,
+            'root_factory':self.bootstrap.root_factory,
+            'a':1,
+        })
+        self.assertTrue(self.bootstrap.closer.called)
+        self.assertTrue(shell.help)
+
+    def test_command_loads_check_variable_override_order(self):
+        command = self._makeOne()
+        model = Dummy()
+        def setup(env):
+            env['a'] = 1
+            env['m'] = 'model override'
+            env['root'] = 'root override'
+        self.config_factory.items = [('setup', setup), ('m', model)]
+        shell = DummyShell()
+        command.command(shell)
+        self.assertTrue(self.config_factory.parser)
+        self.assertEqual(self.config_factory.parser.filename,
+                         '/foo/bar/myapp.ini')
+        self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
+        self.assertEqual(shell.env, {
+            'app':self.bootstrap.app, 'root':'root override',
+            'registry':self.bootstrap.registry,
+            'request':self.bootstrap.request,
+            'root_factory':self.bootstrap.root_factory,
+            'a':1, 'm':model,
+        })
+        self.assertTrue(self.bootstrap.closer.called)
+        self.assertTrue(shell.help)
+
+    def test_command_loads_setup_from_options(self):
+        command = self._makeOne()
+        def setup(env):
+            env['a'] = 1
+            env['root'] = 'root override'
+        model = Dummy()
+        self.config_factory.items = [('setup', 'abc'),
+                                     ('m', model)]
+        command.options.setup = setup
+        shell = DummyShell()
+        command.command(shell)
+        self.assertTrue(self.config_factory.parser)
+        self.assertEqual(self.config_factory.parser.filename,
+                         '/foo/bar/myapp.ini')
+        self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
+        self.assertEqual(shell.env, {
+            'app':self.bootstrap.app, 'root':'root override',
+            'registry':self.bootstrap.registry,
+            'request':self.bootstrap.request,
+            'root_factory':self.bootstrap.root_factory,
+            'a':1, 'm':model,
+        })
+        self.assertTrue(self.bootstrap.closer.called)
+        self.assertTrue(shell.help)
 
     def test_command_custom_section_override(self):
         command = self._makeOne()
         dummy = Dummy()
         self.config_factory.items = [('app', dummy), ('root', dummy),
                                      ('registry', dummy), ('request', dummy)]
-        command.options.disable_ipython = True
-        command.command(IPShell=None)
+        shell = DummyShell()
+        command.command(shell)
         self.assertTrue(self.config_factory.parser)
         self.assertEqual(self.config_factory.parser.filename,
                          '/foo/bar/myapp.ini')
         self.assertEqual(self.bootstrap.a[0], '/foo/bar/myapp.ini#myapp')
-        self.assertEqual(self.interact.local, {
+        self.assertEqual(shell.env, {
             'app':dummy, 'root':dummy, 'registry':dummy, 'request':dummy,
             'root_factory':self.bootstrap.root_factory,
         })
         self.assertTrue(self.bootstrap.closer.called)
-        self.assertTrue(self.interact.banner)
+        self.assertTrue(shell.help)
 
 class TestPRoutesCommand(unittest.TestCase):
     def _getTargetClass(self):
@@ -123,7 +252,10 @@ class TestPRoutesCommand(unittest.TestCase):
         return PRoutesCommand
 
     def _makeOne(self):
-        return self._getTargetClass()('proutes')
+        cmd = self._getTargetClass()('proutes')
+        cmd.bootstrap = (DummyBootstrap(),)
+        cmd.args = ('/foo/bar/myapp.ini#myapp',)
+        return cmd
 
     def test_no_routes(self):
         command = self._makeOne()
@@ -131,10 +263,6 @@ class TestPRoutesCommand(unittest.TestCase):
         command._get_mapper = lambda *arg: mapper
         L = []
         command.out = L.append
-        app = DummyApp()
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
-        command.args = ('/foo/bar/myapp.ini#myapp',)
         result = command.command()
         self.assertEqual(result, None)
         self.assertEqual(L, [])
@@ -144,10 +272,6 @@ class TestPRoutesCommand(unittest.TestCase):
         command._get_mapper = lambda *arg:None
         L = []
         command.out = L.append
-        app = DummyApp()
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
-        command.args = ('/foo/bar/myapp.ini#myapp',)
         result = command.command()
         self.assertEqual(result, None)
         self.assertEqual(L, [])
@@ -159,10 +283,6 @@ class TestPRoutesCommand(unittest.TestCase):
         command._get_mapper = lambda *arg: mapper
         L = []
         command.out = L.append
-        app = DummyApp()
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
-        command.args = ('/foo/bar/myapp.ini#myapp',)
         result = command.command()
         self.assertEqual(result, None)
         self.assertEqual(len(L), 3)
@@ -183,11 +303,7 @@ class TestPRoutesCommand(unittest.TestCase):
         command._get_mapper = lambda *arg: mapper
         L = []
         command.out = L.append
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
-        command.args = ('/foo/bar/myapp.ini#myapp',)
+        command.bootstrap = (DummyBootstrap(registry=registry),)
         result = command.command()
         self.assertEqual(result, None)
         self.assertEqual(len(L), 3)
@@ -213,11 +329,7 @@ class TestPRoutesCommand(unittest.TestCase):
         command._get_mapper = lambda *arg: mapper
         L = []
         command.out = L.append
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
-        command.args = ('/foo/bar/myapp.ini#myapp',)
+        command.bootstrap = (DummyBootstrap(registry=registry),)
         result = command.command()
         self.assertEqual(result, None)
         self.assertEqual(len(L), 3)
@@ -246,11 +358,7 @@ class TestPRoutesCommand(unittest.TestCase):
         command._get_mapper = lambda *arg: mapper
         L = []
         command.out = L.append
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
-        command.args = ('/foo/bar/myapp.ini#myapp',)
+        command.bootstrap = (DummyBootstrap(registry=registry),)
         result = command.command()
         self.assertEqual(result, None)
         self.assertEqual(len(L), 3)
@@ -261,10 +369,7 @@ class TestPRoutesCommand(unittest.TestCase):
         from pyramid.urldispatch import RoutesMapper
         command = self._makeOne()
         registry = Registry()
-        class App: pass
-        app = App()
-        app.registry = registry
-        result = command._get_mapper(app)
+        result = command._get_mapper(registry)
         self.assertEqual(result.__class__, RoutesMapper)
         
 class TestPViewsCommand(unittest.TestCase):
@@ -272,18 +377,22 @@ class TestPViewsCommand(unittest.TestCase):
         from pyramid.paster import PViewsCommand
         return PViewsCommand
 
-    def _makeOne(self):
-        return self._getTargetClass()('pviews')
+    def _makeOne(self, registry=None):
+        cmd = self._getTargetClass()('pviews')
+        cmd.bootstrap = (DummyBootstrap(registry=registry),)
+        cmd.args = ('/foo/bar/myapp.ini#myapp',)
+        return cmd
 
-    def failUnless(self, condition):
-        # silence stupid deprecation under Python >= 2.7
-        self.assertTrue(condition)
+    def _register_mapper(self, registry, routes):
+        from pyramid.interfaces import IRoutesMapper
+        mapper = DummyMapper(*routes)
+        registry.registerUtility(mapper, IRoutesMapper)
 
     def test__find_view_no_match(self):
         from pyramid.registry import Registry
         registry = Registry()
         self._register_mapper(registry, [])
-        command = self._makeOne()
+        command = self._makeOne(registry)
         result = command._find_view('/a', registry)
         self.assertEqual(result, None)
 
@@ -305,7 +414,7 @@ class TestPViewsCommand(unittest.TestCase):
                                  (IViewClassifier, IRequest, root_iface),
                                  IMultiView)
         self._register_mapper(registry, [])
-        command = self._makeOne()
+        command = self._makeOne(registry=registry)
         result = command._find_view('/x', registry)
         self.assertEqual(result, None)
 
@@ -325,7 +434,7 @@ class TestPViewsCommand(unittest.TestCase):
                                  (IViewClassifier, IRequest, root_iface),
                                  IView, name='a')
         self._register_mapper(registry, [])
-        command = self._makeOne()
+        command = self._makeOne(registry=registry)
         result = command._find_view('/a', registry)
         self.assertEqual(result, view1)
 
@@ -348,7 +457,7 @@ class TestPViewsCommand(unittest.TestCase):
                                  (IViewClassifier, IRequest, root_iface),
                                  IMultiView, name='a')
         self._register_mapper(registry, [])
-        command = self._makeOne()
+        command = self._makeOne(registry=registry)
         result = command._find_view('/a', registry)
         self.assertEqual(result, view)
 
@@ -376,7 +485,7 @@ class TestPViewsCommand(unittest.TestCase):
         routes = [DummyRoute('a', '/a', factory=Factory, matchdict={}),
                   DummyRoute('b', '/b', factory=Factory)]
         self._register_mapper(registry, routes)
-        command = self._makeOne()
+        command = self._makeOne(registry=registry)
         result = command._find_view('/a', registry)
         self.assertEqual(result, view)
 
@@ -406,9 +515,9 @@ class TestPViewsCommand(unittest.TestCase):
         routes = [DummyRoute('a', '/a', matchdict={}),
                   DummyRoute('b', '/a', matchdict={})]
         self._register_mapper(registry, routes)
-        command = self._makeOne()
+        command = self._makeOne(registry=registry)
         result = command._find_view('/a', registry)
-        self.failUnless(IMultiView.providedBy(result))
+        self.assertTrue(IMultiView.providedBy(result))
 
     def test__find_view_route_multiview(self):
         from zope.interface import Interface
@@ -444,12 +553,12 @@ class TestPViewsCommand(unittest.TestCase):
         routes = [DummyRoute('a', '/a', matchdict={}),
                   DummyRoute('b', '/a', matchdict={})]
         self._register_mapper(registry, routes)
-        command = self._makeOne()
+        command = self._makeOne(registry=registry)
         result = command._find_view('/a', registry)
-        self.failUnless(IMultiView.providedBy(result))
+        self.assertTrue(IMultiView.providedBy(result))
         self.assertEqual(len(result.views), 2)
-        self.failUnless((None, view1, None) in result.views)
-        self.failUnless((None, view2, None) in result.views)
+        self.assertTrue((None, view1, None) in result.views)
+        self.assertTrue((None, view2, None) in result.views)
 
     def test__find_multi_routes_all_match(self):
         command = self._makeOne()
@@ -484,15 +593,11 @@ class TestPViewsCommand(unittest.TestCase):
         
     def test_views_command_not_found(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         command._find_view = lambda arg1, arg2: None
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -501,15 +606,11 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_not_found_url_starts_without_slash(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         command._find_view = lambda arg1, arg2: None
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', 'a')
         result = command.command()
         self.assertEqual(result, None)
@@ -518,16 +619,12 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_single_view_traversal(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         view = DummyView(context='context', view_name='a')
         command._find_view = lambda arg1, arg2: view
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -538,17 +635,13 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_single_view_function_traversal(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         def view(): pass
         view.__request_attrs__ = {'context': 'context', 'view_name': 'a'}
         command._find_view = lambda arg1, arg2: view
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -559,17 +652,13 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_single_view_traversal_with_permission(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         view = DummyView(context='context', view_name='a')
         view.__permission__ = 'test'
         command._find_view = lambda arg1, arg2: view
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -581,8 +670,8 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_single_view_traversal_with_predicates(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         def predicate(): pass
@@ -590,10 +679,6 @@ class TestPViewsCommand(unittest.TestCase):
         view = DummyView(context='context', view_name='a')
         view.__predicates__ = [predicate]
         command._find_view = lambda arg1, arg2: view
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -605,18 +690,14 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_single_view_route(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         route = DummyRoute('a', '/a', matchdict={})
         view = DummyView(context='context', view_name='a',
                          matched_route=route, subpath='')
         command._find_view = lambda arg1, arg2: view
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -632,8 +713,8 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_multi_view_nested(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         view1 = DummyView(context='context', view_name='a1')
@@ -643,10 +724,6 @@ class TestPViewsCommand(unittest.TestCase):
         multiview2 = DummyMultiView(multiview1, context='context',
                                     view_name='a')
         command._find_view = lambda arg1, arg2: multiview2
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -658,8 +735,8 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_single_view_route_with_route_predicates(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         def predicate(): pass
@@ -668,10 +745,6 @@ class TestPViewsCommand(unittest.TestCase):
         view = DummyView(context='context', view_name='a',
                          matched_route=route, subpath='')
         command._find_view = lambda arg1, arg2: view
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -688,8 +761,8 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_multiview(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         view = DummyView(context='context')
@@ -697,10 +770,6 @@ class TestPViewsCommand(unittest.TestCase):
         view.__view_attr__ = 'call'
         multiview = DummyMultiView(view, context='context', view_name='a')
         command._find_view = lambda arg1, arg2: multiview
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -711,8 +780,8 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_multiview_with_permission(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         view = DummyView(context='context')
@@ -721,10 +790,6 @@ class TestPViewsCommand(unittest.TestCase):
         view.__permission__ = 'test'
         multiview = DummyMultiView(view, context='context', view_name='a')
         command._find_view = lambda arg1, arg2: multiview
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -736,8 +801,8 @@ class TestPViewsCommand(unittest.TestCase):
 
     def test_views_command_multiview_with_predicates(self):
         from pyramid.registry import Registry
-        command = self._makeOne()
         registry = Registry()
+        command = self._makeOne(registry=registry)
         L = []
         command.out = L.append
         def predicate(): pass
@@ -748,10 +813,6 @@ class TestPViewsCommand(unittest.TestCase):
         view.__predicates__ = [predicate]
         multiview = DummyMultiView(view, context='context', view_name='a')
         command._find_view = lambda arg1, arg2: multiview
-        app = DummyApp()
-        app.registry = registry
-        loadapp = DummyLoadApp(app)
-        command.loadapp = (loadapp,)
         command.args = ('/foo/bar/myapp.ini#myapp', '/a')
         result = command.command()
         self.assertEqual(result, None)
@@ -760,11 +821,6 @@ class TestPViewsCommand(unittest.TestCase):
         self.assertEqual(L[4], '    view name: a')
         self.assertEqual(L[8], '    pyramid.tests.test_paster.view.call')
         self.assertEqual(L[9], '    view predicates (predicate = x)')
-
-    def _register_mapper(self, registry, routes):
-        from pyramid.interfaces import IRoutesMapper
-        mapper = DummyMapper(*routes)
-        registry.registerUtility(mapper, IRoutesMapper)
 
 class TestGetApp(unittest.TestCase):
     def _callFUT(self, config_file, section_name, loadapp):
@@ -840,25 +896,66 @@ class TestBootstrap(unittest.TestCase):
         self.assertEqual(result['root'], self.root)
         self.assert_('closer' in result)
 
+class TestPTweensCommand(unittest.TestCase):
+    def _getTargetClass(self):
+        from pyramid.paster import PTweensCommand
+        return PTweensCommand
+
+    def _makeOne(self):
+        cmd = self._getTargetClass()('ptweens')
+        cmd.bootstrap = (DummyBootstrap(),)
+        cmd.args = ('/foo/bar/myapp.ini#myapp',)
+        return cmd
+
+    def test_command_no_tweens(self):
+        command = self._makeOne()
+        command._get_tweens = lambda *arg: None
+        L = []
+        command.out = L.append
+        result = command.command()
+        self.assertEqual(result, None)
+        self.assertEqual(L, [])
+
+    def test_command_implicit_tweens_only(self):
+        command = self._makeOne()
+        tweens = DummyTweens([('name', 'item')], None)
+        command._get_tweens = lambda *arg: tweens
+        L = []
+        command.out = L.append
+        result = command.command()
+        self.assertEqual(result, None)
+        self.assertEqual(
+           L[0],
+           '"pyramid.tweens" config value NOT set (implicitly ordered tweens '
+            'used)')
+
+    def test_command_implicit_and_explicit_tweens(self):
+        command = self._makeOne()
+        tweens = DummyTweens([('name', 'item')], [('name2', 'item2')])
+        command._get_tweens = lambda *arg: tweens
+        L = []
+        command.out = L.append
+        result = command.command()
+        self.assertEqual(result, None)
+        self.assertEqual(
+           L[0],
+           '"pyramid.tweens" config value set (explicitly ordered tweens used)')
+
+    def test__get_tweens(self):
+        command = self._makeOne()
+        registry = DummyRegistry()
+        self.assertEqual(command._get_tweens(registry), None)
+
+class DummyTweens(object):
+    def __init__(self, implicit, explicit):
+        self._implicit = implicit
+        self.explicit = explicit
+        self.name_to_alias = {}
+    def implicit(self):
+        return self._implicit
+                
 class Dummy:
     pass
-
-class DummyIPShellFactory(object):
-    def __call__(self, argv, user_ns=None):
-        shell = DummyIPShell()
-        shell(user_ns, {})
-        self.shell = shell
-        return shell
-
-class DummyIPShell(object):
-    IP = Dummy()
-    IP.BANNER = 'foo'
-    def __call__(self, local_ns, global_ns):
-        self.local_ns = local_ns
-        self.global_ns = global_ns
-
-    def mainloop(self):
-        pass
 
 dummy_root = Dummy()
 
@@ -869,10 +966,34 @@ class DummyRegistry(object):
 
 dummy_registry = DummyRegistry()
 
+class DummyShell(object):
+    env = {}
+    help = ''
+
+    def __call__(self, env, help):
+        self.env = env
+        self.help = help
+
 class DummyInteractor:
     def __call__(self, banner, local):
         self.banner = banner
         self.local = local
+
+class DummyIPShell(object):
+    IP = Dummy()
+    IP.BANNER = 'foo'
+
+    def set_banner(self, banner):
+        self.banner = banner
+
+    def __call__(self):
+        self.called = True
+
+class DummyIPShellFactory(object):
+    def __call__(self, **kw):
+        self.kw = kw
+        self.shell = DummyIPShell()
+        return self.shell
 
 class DummyLoadApp:
     def __init__(self, app):
@@ -959,11 +1080,21 @@ class DummyBootstrap(object):
     def __init__(self, app=None, registry=None, request=None, root=None,
                  root_factory=None, closer=None):
         self.app = app or DummyApp()
-        self.registry = registry or dummy_registry
-        self.request = request or DummyRequest({})
-        self.root = root or dummy_root
-        self.root_factory = root_factory or Dummy()
-        self.closer = closer or DummyCloser()
+        if registry is None:
+            registry = DummyRegistry()
+        self.registry = registry
+        if request is None:
+            request = DummyRequest({})
+        self.request = request
+        if root is None:
+            root = Dummy()
+        self.root = root
+        if root_factory is None:
+            root_factory = Dummy()
+        self.root_factory = root_factory
+        if closer is None:
+            closer = DummyCloser()
+        self.closer = closer
 
     def __call__(self, *a, **kw):
         self.a = a

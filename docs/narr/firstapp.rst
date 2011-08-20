@@ -1,3 +1,6 @@
+.. index::
+   single: hello world program
+
 .. _firstapp_chapter:
 
 Creating Your First :app:`Pyramid` Application
@@ -150,7 +153,7 @@ defined imports and function definitions, placed within the confines of an
        app = config.make_wsgi_app()
        serve(app, host='0.0.0.0')
 
-Let's break this down this piece-by-piece.
+Let's break this down piece-by-piece.
 
 Configurator Construction
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,23 +166,25 @@ Configurator Construction
 
 The ``if __name__ == '__main__':`` line in the code sample above represents a
 Python idiom: the code inside this if clause is not invoked unless the script
-containing this code is run directly from the command line. For example, if
-the file named ``helloworld.py`` contains the entire script body, the code
-within the ``if`` statement will only be invoked when ``python
-helloworld.py`` is executed from the operating system command line.
+containing this code is run directly from the operating system command
+line. For example, if the file named ``helloworld.py`` contains the entire
+script body, the code within the ``if`` statement will only be invoked when
+``python helloworld.py`` is executed from the command line.
 
-``helloworld.py`` in this case is a Python :term:`module`.  Using the ``if``
-clause is necessary -- or at least best practice -- because code in any
-Python module may be imported by another Python module.  By using this idiom,
-the script is indicating that it does not want the code within the ``if``
-statement to execute if this module is imported; the code within the ``if``
-block should only be run during a direct script execution.
+Using the ``if`` clause is necessary -- or at least best practice -- because
+code in a Python ``.py`` file may be eventually imported via the Python
+``import`` statement by another ``.py`` file.  ``.py`` files that are
+imported by other ``.py`` files are referred to as *modules*.  By using the
+``if __name__ == 'main':`` idiom, the script above is indicating that it does
+not want the code within the ``if`` statement to execute if this module is
+imported from another; the code within the ``if`` block should only be run
+during a direct script execution.
 
 The ``config = Configurator()`` line above creates an instance of the
 :class:`~pyramid.config.Configurator` class.  The resulting ``config`` object
 represents an API which the script uses to configure this particular
 :app:`Pyramid` application.  Methods called on the Configurator will cause
-registrations to be made in a :term:`application registry` associated with
+registrations to be made in an :term:`application registry` associated with
 the application.
 
 .. _adding_configuration:
@@ -319,6 +324,3 @@ see :class:`~pyramid.config.Configurator` .
 For more information about :term:`view configuration`, see
 :ref:`view_config_chapter`.
 
-An example of using *declarative* configuration (:term:`ZCML`) instead of
-imperative configuration to create a similar "hello world" is available
-within the documentation for :term:`pyramid_zcml`.

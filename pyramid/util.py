@@ -257,3 +257,4 @@ def quote_path_segment(segment, safe=''):
 @lru_cache(1000)
 def join_elements(elements):
     return '/'.join([quote_path_segment(s, safe=':@&+$,') for s in elements])
+

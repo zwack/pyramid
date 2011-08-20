@@ -14,6 +14,9 @@ URL space that it does not "naturally" inhabit.
 a URL "prefix", as well as serving a *portion* of a :term:`traversal`
 based application under a root URL.
 
+.. index::
+   single: hosting an app under a prefix
+
 Hosting an Application Under a URL Prefix
 -----------------------------------------
 
@@ -98,8 +101,8 @@ the WSGI environ named ``HTTP_X_VHM_ROOT`` with a value that is the absolute
 pathname to the resource object in the resource tree that should behave as
 the "root" resource.  As a result, the traversal machinery will respect this
 value during traversal (prepending it to the PATH_INFO before traversal
-starts), and the :func:`pyramid.url.resource_url` API will generate the
-"correct" virtually-rooted URLs.
+starts), and the :meth:`pyramid.request.Request.resource_url` API will
+generate the "correct" virtually-rooted URLs.
 
 An example of an Apache ``mod_proxy`` configuration that will host the
 ``/cms`` subobject as ``http://www.example.com/`` using this facility

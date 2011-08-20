@@ -265,14 +265,83 @@ class IExceptionResponse(IException, IResponse):
     :class:`pyramid.response.Response`, including
     :class:`pyramid.httpexceptions.HTTPNotFound` and
     :class:`pyramid.httpexceptions.HTTPForbidden`)."""
+    def prepare(environ):
+        """ Prepares the response for being called as a WSGI application """
 
-class IBeforeRender(Interface):
+class IDict(Interface):
+    # Documentation-only interface
+
+    def __contains__(k):
+        """ Return ``True`` if key ``k`` exists in the dictionary."""
+
+    def __setitem__(k, value):
+        """ Set a key/value pair into the dictionary"""
+        
+    def __delitem__(k):
+        """ Delete an item from the dictionary which is passed to the
+        renderer as the renderer globals dictionary."""
+            
+    def __getitem__(k):
+        """ Return the value for key ``k`` from the dictionary or raise a
+        KeyError if the key doesn't exist"""
+
+    def __iter__():
+        """ Return an iterator over the keys of this dictionary """
+            
+    def get(k, default=None):
+        """ Return the value for key ``k`` from the renderer dictionary, or
+        the default if no such value exists."""
+
+    has_key = __contains__
+
+    def items():
+        """ Return a list of [(k,v)] pairs from the dictionary """
+
+    def iteritems():
+        """ Return an iterator of (k,v) pairs from the dictionary """
+
+    def keys():
+        """ Return a list of keys from the dictionary """
+
+    def iterkeys():
+        """ Return an iterator of keys from the dictionary """
+
+    def values():
+        """ Return a list of values from the dictionary """
+
+    def itervalues():
+        """ Return an iterator of values from the dictionary """
+
+    def pop(k, default=None):
+        """ Pop the key k from the dictionary and return its value.  If k
+        doesn't exist, and default is provided, return the default.  If k
+        doesn't exist and default is not provided, raise a KeyError."""
+
+    def popitem():
+        """ Pop the item with key k from the dictionary and return it as a
+        two-tuple (k, v).  If k doesn't exist, raise a KeyError."""
+
+    def setdefault(k, default=None):
+        """ Return the existing value for key ``k`` in the dictionary.  If no
+         value with ``k`` exists in the dictionary, set the ``default``
+         value into the dictionary under the k name passed.  If a value already
+         existed in the dictionary, return it.  If a value did not exist in
+         the dictionary, return the default"""
+    
+    def update(d):
+        """ Update the renderer dictionary with another dictionary ``d``."""
+
+    def clear():
+        """ Clear all values from the dictionary """
+
+class IBeforeRender(IDict):
     """
     Subscribers to this event may introspect the and modify the set of
     :term:`renderer globals` before they are passed to a :term:`renderer`.
-    This event object iself has a dictionary-like interface that can be used
-    for this purpose.  For example::
-
+    The event object itself provides a dictionary-like interface for adding
+    and removing :term:`renderer globals`.  The keys and values of the
+    dictionary are those globals.  For example::
+    
       from repoze.events import subscriber
       from pyramid.interfaces import IBeforeRender
 
@@ -282,32 +351,9 @@ class IBeforeRender(Interface):
 
     See also :ref:`beforerender_event`.
     """
-    def __setitem__(name, value):
-        """ Set a name/value pair into the dictionary which is passed to a
-        renderer as the renderer globals dictionary.  """
-
-    def setdefault(name, default=None):
-        """ Return the existing value for ``name`` in the renderers globals
-        dictionary.  If no value with ``name`` exists in the dictionary, set
-        the ``default`` value into the renderer globals dictionary under the
-        name passed.  If a value already existed in the dictionary, return
-        it.  If a value did not exist in the dictionary, return the default"""
-
-    def update(d):
-        """ Update the renderer globals dictionary with another dictionary
-        ``d``.  """
-
-    def __contains__(k):
-        """ Return ``True`` if ``k`` exists in the renderer globals
-        dictionary."""
-
-    def __getitem__(k):
-        """ Return the value for key ``k`` from the renderer globals
-        dictionary."""
-
-    def get(k, default=None):
-        """ Return the value for key ``k`` from the renderer globals
-        dictionary, or the default if no such value exists."""
+    rendering_val = Attribute('The value returned by a view or passed to a '
+                              '``render`` method for this rendering. '
+                              'This feature is new in Pyramid 1.2.')
 
 class IRenderer(Interface):
     def __call__(value, system):
@@ -399,7 +445,7 @@ class IAuthorizationPolicy(Interface):
         ``pyramid.security.principals_allowed_by_permission`` API is
         used."""
 
-class IMultiDict(Interface): # docs-only interface
+class IMultiDict(IDict): # docs-only interface
     """
     An ordered dictionary that can have multiple values for each key. A
     multidict adds the methods ``getall``, ``getone``, ``mixed``, ``extend``
@@ -441,6 +487,17 @@ class IMultiDict(Interface): # docs-only interface
 
 class IRequest(Interface):
     """ Request type interface attached to all request objects """
+
+class ITweens(Interface):
+    """ Marker interface for utility registration representing the ordered
+    set of a configuration's tween factories"""
+
+class IRequestHandler(Interface):
+    """ """
+    def __call__(self, request):
+        """ Must return a tuple of IReqest, IResponse or raise an exception.
+        The ``request`` argument will be an instance of an object that
+        provides IRequest."""
 
 IRequest.combined = IRequest # for exception view lookups 
 
@@ -577,12 +634,13 @@ ILogger = IDebugLogger # b/c
 
 class IRoutePregenerator(Interface):
     def __call__(request, elements, kw):
-        """ A pregenerator is a function associated by a developer
-        with a :term:`route`. The pregenerator for a route is called
-        by :func:`pyramid.url.route_url` in order to adjust the set
-        of arguments passed to it by the user for special purposes,
-        such as Pylons 'subdomain' support.  It will influence the URL
-        returned by ``route_url``.
+
+        """ A pregenerator is a function associated by a developer with a
+        :term:`route`. The pregenerator for a route is called by
+        :meth:`pyramid.request.Request.route_url` in order to adjust the set
+        of arguments passed to it by the user for special purposes, such as
+        Pylons 'subdomain' support.  It will influence the URL returned by
+        ``route_url``.
 
         A pregenerator should return a two-tuple of ``(elements, kw)``
         after examining the originals passed to this function, which
@@ -608,7 +666,7 @@ class IRoute(Interface):
         'when this route matches (or ``None``)')
     predicates = Attribute(
         'A sequence of :term:`route predicate` objects used to '
-        'determine if a request matches this route or not or not after '
+        'determine if a request matches this route or not after '
         'basic pattern matching has been completed.')
     pregenerator = Attribute(
         'This attribute should either be ``None`` or a callable object '
@@ -751,7 +809,7 @@ class ISessionFactory(Interface):
     def __call__(request):
         """ Return an ISession object """
 
-class ISession(Interface):
+class ISession(IDict):
     """ An interface representing a session (a web session object,
     usually accessed via ``request.session``.
 
@@ -795,13 +853,13 @@ class ISession(Interface):
         """ Pop a queue from the flash storage.  The queue is removed from
         flash storage after this message is called.  The queue is returned;
         it is a list of flash messages added by
-        :meth:`pyramid.interfaces.ISesssion.flash`"""
+        :meth:`pyramid.interfaces.ISession.flash`"""
 
     def peek_flash(queue=''):
         """ Peek at a queue in the flash storage.  The queue remains in
         flash storage after this message is called.  The queue is returned;
         it is a list of flash messages added by
-        :meth:`pyramid.interfaces.ISesssion.flash`
+        :meth:`pyramid.interfaces.ISession.flash`
         """
 
     def new_csrf_token():
@@ -817,82 +875,6 @@ class ISession(Interface):
         returned.
         """
 
-    # mapping methods
-    
-    def __getitem__(key):
-        """Get a value for a key
-
-        A ``KeyError`` is raised if there is no value for the key.
-        """
-
-    def get(key, default=None):
-        """Get a value for a key
-
-        The default is returned if there is no value for the key.
-        """
-
-    def __delitem__(key):
-        """Delete a value from the mapping using the key.
-
-        A ``KeyError`` is raised if there is no value for the key.
-        """
-
-    def __setitem__(key, value):
-        """Set a new item in the mapping."""
-
-    def keys():
-        """Return the keys of the mapping object.
-        """
-
-    def values():
-        """Return the values of the mapping object.
-        """
-
-    def items():
-        """Return the items of the mapping object.
-        """
-
-    def iterkeys():
-        "iterate over keys; equivalent to __iter__"
-
-    def itervalues():
-        "iterate over values"
-
-    def iteritems():
-        "iterate over items"
-
-    def clear():
-        "delete all items"
-    
-    def update(d):
-        " Update D from E: for k in E.keys(): D[k] = E[k]"
-    
-    def setdefault(key, default=None):
-        " D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D "
-    
-    def pop(k, *args):
-        """remove specified key and return the corresponding value
-        ``*args`` may contain a single default value, or may not be supplied.
-        If key is not found, default is returned if given, otherwise 
-        ``KeyError`` is raised"""
-    
-    def popitem():
-        """remove and return some (key, value) pair as a
-        2-tuple; but raise ``KeyError`` if mapping is empty"""
-
-    def __len__():
-        """Return the number of items in the session.
-        """
-
-    def __iter__():
-        """Return an iterator for the keys of the mapping object.
-        """
-
-    def __contains__(key):
-        """Return true if a key exists in the mapping."""
-
-NO_PERMISSION_REQUIRED = '__no_permission_required__'
-
 class IRendererInfo(Interface):
     """ An object implementing this interface is passed to every
     :term:`renderer factory` constructor as its only argument (conventionally
@@ -906,4 +888,3 @@ class IRendererInfo(Interface):
     settings = Attribute('The deployment settings dictionary related '
                          'to the current application')
     
-

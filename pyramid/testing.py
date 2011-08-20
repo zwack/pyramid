@@ -25,7 +25,9 @@ from pyramid.security import Everyone
 from pyramid.security import has_permission
 from pyramid.threadlocal import get_current_registry
 from pyramid.threadlocal import manager
-from pyramid.request import DeprecatedRequestMethods
+from pyramid.request import DeprecatedRequestMethodsMixin
+from pyramid.request import CallbackMethodsMixin
+from pyramid.url import URLMethodsMixin
 
 _marker = object()
 
@@ -620,7 +622,8 @@ class DummySession(dict):
     def get_csrf_token(self):
         return self.get('_csrft_', None)
         
-class DummyRequest(DeprecatedRequestMethods):
+class DummyRequest(DeprecatedRequestMethodsMixin, URLMethodsMixin,
+                   CallbackMethodsMixin):
     """ A DummyRequest object (incompletely) imitates a :term:`request` object.
 
     The ``params``, ``environ``, ``headers``, ``path``, and
@@ -653,7 +656,6 @@ class DummyRequest(DeprecatedRequestMethods):
     host = 'example.com:80'
     content_length = 0
     query_string = ''
-    response_callbacks = ()
     charset = 'UTF-8'
     script_name = ''
     _registry = None
@@ -697,11 +699,6 @@ class DummyRequest(DeprecatedRequestMethods):
         self.marshalled = params # repoze.monty
         self.session = DummySession()
         self.__dict__.update(kw)
-
-    def add_response_callback(self, callback):
-        if not self.response_callbacks:
-            self.response_callbacks = []
-        self.response_callbacks.append(callback)
 
     def _get_registry(self):
         if self._registry is None:

@@ -20,7 +20,8 @@ run :app:`Pyramid`.
 
 :app:`Pyramid` is known to run on all popular Unix-like systems such as
 Linux, MacOS X, and FreeBSD as well as on Windows platforms.  It is also
-known to run on Google's App Engine, :term:`PyPy`, and :term:`Jython`.
+known to run on Google's App Engine, :term:`PyPy` (1.5), and :term:`Jython`
+(2.5.2).
 
 :app:`Pyramid` installation does not require the compilation of any
 C code, so you need only a Python interpreter that meets the
@@ -33,6 +34,9 @@ If your system doesn't have a Python interpreter, and you're on UNIX,
 you can either install Python using your operating system's package
 manager *or* you can install Python from source fairly easily on any
 UNIX system that has development tools.
+
+.. index::
+   pair: install; Python (from package, UNIX)
 
 Package Manager Method
 ++++++++++++++++++++++
@@ -51,6 +55,9 @@ command:
 
 Once these steps are performed, the Python interpreter will usually be
 invokable via ``python2.6`` from a shell prompt.
+
+.. index::
+   pair: install; Python (from source, UNIX)
 
 Source Compile Method
 +++++++++++++++++++++
@@ -94,6 +101,9 @@ using the following commands:
 Once these steps are performed, the Python interpreter will be
 invokable via ``$HOME/opt/Python-2.6.4/bin/python`` from a shell
 prompt.
+
+.. index::
+   pair: install; Python (from package, Windows)
 
 If You Don't Yet Have A Python Interpreter (Windows)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,7 +190,7 @@ the script.  To remediate this, you may need to do:
    $ sudo python ez_setup.py
 
 .. index::
-   single: virtualenv
+   pair: install; virtualenv
 
 Installing the ``virtualenv`` Package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,6 +214,7 @@ to install it as your system's administrative user.  For example:
 
 .. index::
    single: virtualenv
+   pair: Python; virtual environment
 
 Creating the Virtual Python Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -311,6 +322,9 @@ Installing :app:`Pyramid` on Google App Engine
 
 :ref:`appengine_tutorial` documents the steps required to install a
 :app:`Pyramid` application on Google App Engine.
+
+.. index::
+   single: installing on Jython
 
 Installing :app:`Pyramid` on Jython
 --------------------------------------

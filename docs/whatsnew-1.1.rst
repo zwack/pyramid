@@ -152,7 +152,7 @@ to only influence ``Cache-Control`` headers, pass a tuple as ``http_cache``
 with the first element of ``None``, e.g.: ``(None, {'public':True})``.
 
 The environment setting ``PYRAMID_PREVENT_HTTP_CACHE`` and configuration
-file value ``prevent_http_cache`` are synomymous and allow you to prevent
+file value ``prevent_http_cache`` are synonymous and allow you to prevent
 HTTP cache headers from being set by Pyramid's ``http_cache`` machinery
 globally in a process.  see :ref:`influencing_http_caching` and
 :ref:`preventing_http_caching`.
@@ -181,14 +181,12 @@ Minor Feature Additions
   user.  See "The Interactive Shell" in the "Creating a Pyramid Project"
   narrative documentation section.
 
-- ``paster pshell`` now offers more built-in global variables by default
-  (including ``app`` and ``settings``).  See :ref:`interactive_shell`.
-
-- The ``paster pshell`` command now under the hood uses
-  :func:`pyramid.paster.bootstrap`, which makes it possible to supply an
-  ``.ini`` file without naming the "right" section in the file that points at
-  the actual Pyramid application.  Instead, you can generally just run
-  ``paster pshell development.ini`` and it will do mostly the right thing.
+- The ``paster pshell``, ``paster pviews``, and ``paster proutes`` commands
+  each now under the hood uses :func:`pyramid.paster.bootstrap`, which makes
+  it possible to supply an ``.ini`` file without naming the "right" section
+  in the file that points at the actual Pyramid application.  Instead, you
+  can generally just run ``paster {pshell|proutes|pviews} development.ini``
+  and it will do mostly the right thing.
 
 - It is now possible to add a ``[pshell]`` section to your application's .ini
   configuration file, which influences the global names available to a pshell
@@ -318,6 +316,16 @@ Minor Feature Additions
   current process via :meth:`pyramid.config.Configurator.make_app`.  It also
   has a ``last`` attribute containing the last registry loaded.  This is used
   by the scripting machinery, and is available for introspection.
+
+- Added the :attr:`pyramid.renderers.null_renderer` object as an API.  The
+  null renderer is an object that can be used in advanced integration cases
+  as input to the view configuration ``renderer=`` argument.  When the null
+  renderer is used as a view renderer argument, Pyramid avoids converting the
+  view callable result into a Response object.  This is useful if you want to
+  reuse the view configuration and lookup machinery outside the context of
+  its use by the Pyramid router.  (This feature was added for consumption by
+  the ``pyramid_rpc`` package, which uses view configuration and lookup
+  outside the context of a router in exactly this way.)
 
 Backwards Incompatibilities
 ---------------------------
@@ -471,7 +479,7 @@ Deprecations and Behavior Differences
   these methods will be removed entirely.
 
 - A custom request factory is now required to return a request object that
-  has a ``response`` attribute (or "reified"/lazy property) if they the
+  has a ``response`` attribute (or "reified"/lazy property) if the
   request is meant to be used in a view that uses a renderer.  This
   ``response`` attribute should be an instance of the class
   :class:`pyramid.response.Response`.
@@ -534,8 +542,8 @@ Deprecations and Behavior Differences
 - Deprecated the
   :meth:`pyramid.config.Configurator.set_renderer_globals_factory` method and
   the ``renderer_globals`` Configurator constructor parameter.  Users should
-  use convert code using this feature to use a BeforeRender event als
-  :ref:`beforerender_event`.
+  convert code using this feature to use a BeforeRender event. See the section
+  :ref:`beforerender_event` in the Hooks chapter.
 
 - In Pyramid 1.0, the :class:`pyramid.events.subscriber` directive behaved
   contrary to the documentation when passed more than one interface object to
@@ -578,7 +586,7 @@ Deprecations and Behavior Differences
 
 - The :meth:`pyramid.config.Configurator.add_route` method allowed two routes
   with the same route to be added without an intermediate call to
-  :meth:`pyramid.config.Configurator.commit``.  If you now receive a
+  :meth:`pyramid.config.Configurator.commit`.  If you now receive a
   ``ConfigurationError`` at startup time that appears to be ``add_route``
   related, you'll need to either a) ensure that all of your route names are
   unique or b) call ``config.commit()`` before adding a second route with the

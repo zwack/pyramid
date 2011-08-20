@@ -8,9 +8,12 @@
    single: debug_all
    single: reload_all
    single: debug settings
+   single: debug_routematch
+   single: prevent_http_cache
    single: reload settings
    single: default_locale_name
    single: environment variables
+   single: Mako environment settings
    single: ini file settings
    single: PasteDeploy settings
 
@@ -44,14 +47,14 @@ changes to templates take effect immediately during development.  This
 flag is meaningful to Chameleon and Mako templates, as well as most
 third-party template rendering extensions.
 
-+---------------------------------+-----------------------------+
-| Environment Variable Name       | Config File Setting Name    |
-+=================================+=============================+
-| ``PYRAMID_RELOAD_TEMPLATES``    |  ``reload_templates``       |
-|                                 |                             |
-|                                 |                             |
-|                                 |                             |
-+---------------------------------+-----------------------------+
++---------------------------------+--------------------------------+
+| Environment Variable Name       | Config File Setting Name       |
++=================================+================================+
+| ``PYRAMID_RELOAD_TEMPLATES``    |  ``pyramid.reload_templates``  |
+|                                 |                                |
+|                                 |                                |
+|                                 |                                |
++---------------------------------+--------------------------------+
 
 Reloading Assets
 ----------------
@@ -62,7 +65,7 @@ also :ref:`overriding_assets_section`.
 +---------------------------------+-----------------------------+
 | Environment Variable Name       | Config File Setting Name    |
 +=================================+=============================+
-| ``PYRAMID_RELOAD_ASSETS``       |  ``reload_assets``          |
+| ``PYRAMID_RELOAD_ASSETS``       |  ``pyramid.reload_assets``  |
 |                                 |                             |
 |                                 |                             |
 |                                 |                             |
@@ -70,7 +73,7 @@ also :ref:`overriding_assets_section`.
 
 .. note:: For backwards compatibility purposes, aliases can be
    used for configurating asset reloading: ``PYRAMID_RELOAD_RESOURCES`` (envvar)
-   and ``reload_resources`` (config file).
+   and ``pyramid.reload_resources`` (config file).
 
 Debugging Authorization
 -----------------------
@@ -78,14 +81,14 @@ Debugging Authorization
 Print view authorization failure and success information to stderr
 when this value is true.  See also :ref:`debug_authorization_section`.
 
-+---------------------------------+-----------------------------+
-| Environment Variable Name       | Config File Setting Name    |
-+=================================+=============================+
-| ``PYRAMID_DEBUG_AUTHORIZATION`` |  ``debug_authorization``    |
-|                                 |                             |
-|                                 |                             |
-|                                 |                             |
-+---------------------------------+-----------------------------+
++---------------------------------+-----------------------------------+
+| Environment Variable Name       | Config File Setting Name          |
++=================================+===================================+
+| ``PYRAMID_DEBUG_AUTHORIZATION`` |  ``pyramid.debug_authorization``  |
+|                                 |                                   |
+|                                 |                                   |
+|                                 |                                   |
++---------------------------------+-----------------------------------+
 
 Debugging Not Found Errors
 --------------------------
@@ -93,14 +96,14 @@ Debugging Not Found Errors
 Print view-related ``NotFound`` debug messages to stderr
 when this value is true.  See also :ref:`debug_notfound_section`.
 
-+---------------------------------+-----------------------------+
-| Environment Variable Name       | Config File Setting Name    |
-+=================================+=============================+
-| ``PYRAMID_DEBUG_NOTFOUND``      |  ``debug_notfound``         |
-|                                 |                             |
-|                                 |                             |
-|                                 |                             |
-+---------------------------------+-----------------------------+
++---------------------------------+------------------------------+
+| Environment Variable Name       | Config File Setting Name     |
++=================================+==============================+
+| ``PYRAMID_DEBUG_NOTFOUND``      |  ``pyramid.debug_notfound``  |
+|                                 |                              |
+|                                 |                              |
+|                                 |                              |
++---------------------------------+------------------------------+
 
 Debugging Route Matching
 ------------------------
@@ -108,14 +111,14 @@ Debugging Route Matching
 Print debugging messages related to :term:`url dispatch` route matching when
 this value is true.  See also :ref:`debug_routematch_section`.
 
-+---------------------------------+-----------------------------+
-| Environment Variable Name       | Config File Setting Name    |
-+=================================+=============================+
-| ``PYRAMID_DEBUG_ROUTEMATCH``    |  ``debug_routematch``       |
-|                                 |                             |
-|                                 |                             |
-|                                 |                             |
-+---------------------------------+-----------------------------+
++---------------------------------+--------------------------------+
+| Environment Variable Name       | Config File Setting Name       |
++=================================+================================+
+| ``PYRAMID_DEBUG_ROUTEMATCH``    |  ``pyramid.debug_routematch``  |
+|                                 |                                |
+|                                 |                                |
+|                                 |                                |
++---------------------------------+--------------------------------+
 
 .. _preventing_http_caching:
 
@@ -127,14 +130,14 @@ globally in this process when this value is true.  No http caching-related
 response headers will be set by the Pyramid ``http_cache`` view configuration
 feature when this is true.  See also :ref:`influencing_http_caching`.
 
-+---------------------------------+-----------------------------+
-| Environment Variable Name       | Config File Setting Name    |
-+=================================+=============================+
-| ``PYRAMID_PREVENT_HTTP_CACHE``  |  ``prevent_http_cache``     |
-|                                 |                             |
-|                                 |                             |
-|                                 |                             |
-+---------------------------------+-----------------------------+
++---------------------------------+----------------------------------+
+| Environment Variable Name       | Config File Setting Name         |
++=================================+==================================+
+| ``PYRAMID_PREVENT_HTTP_CACHE``  |  ``pyramid.prevent_http_cache``  |
+|                                 |                                  |
+|                                 |                                  |
+|                                 |                                  |
++---------------------------------+----------------------------------+
 
 Debugging All
 -------------
@@ -144,7 +147,7 @@ Turns on all ``debug*`` settings.
 +---------------------------------+-----------------------------+
 | Environment Variable Name       | Config File Setting Name    |
 +=================================+=============================+
-| ``PYRAMID_DEBUG_ALL``           |  ``debug_all``              |
+| ``PYRAMID_DEBUG_ALL``           |  ``pyramid.debug_all``      |
 |                                 |                             |
 |                                 |                             |
 |                                 |                             |
@@ -158,7 +161,7 @@ Turns on all ``reload*`` settings.
 +---------------------------------+-----------------------------+
 | Environment Variable Name       | Config File Setting Name    |
 +=================================+=============================+
-| ``PYRAMID_RELOAD_ALL``          |  ``reload_all``             |
+| ``PYRAMID_RELOAD_ALL``          |  ``pyramid.reload_all``     |
 |                                 |                             |
 |                                 |                             |
 |                                 |                             |
@@ -173,14 +176,199 @@ The value supplied here is used as the default locale name when a
 :term:`locale negotiator` is not registered.  See also
 :ref:`localization_deployment_settings`.
 
-+---------------------------------+-----------------------------+
-| Environment Variable Name       | Config File Setting Name    |
-+=================================+=============================+
-| ``PYRAMID_DEFAULT_LOCALE_NAME`` |  ``default_locale_name``    |
-|                                 |                             |
-|                                 |                             |
-|                                 |                             |
-+---------------------------------+-----------------------------+
++---------------------------------+-----------------------------------+
+| Environment Variable Name       | Config File Setting Name          |
++=================================+===================================+
+| ``PYRAMID_DEFAULT_LOCALE_NAME`` |  ``pyramid.default_locale_name``  |
+|                                 |                                   |
+|                                 |                                   |
+|                                 |                                   |
++---------------------------------+-----------------------------------+
+
+Including Packages
+------------------
+
+``pyramid.includes`` instructs your application to include other packages.
+Using the setting is equivalent to using the
+:meth:`pyramid.config.Configurator.include` method.  
+
++---------------------------------+
+| Config File Setting Name        |
++=================================+
+| ``pyramid.includes``            |
+|                                 |
+|                                 |
+|                                 |
++---------------------------------+
+
+The value supplied as ``pyramid.includes`` should be a sequence.  The
+sequence can take several different forms.
+
+1) It can be a string.
+
+   If it is a string, the package names can be separated by spaces::
+
+      package1 package2 package3
+
+    The package names can also be separated by carriage returns::
+
+       package1
+       package2
+       package3
+
+2) It can be a Python list, where the values are strings::
+
+   ['package1', 'package2', 'package3']
+
+Each value in the sequence should be a :term:`dotted Python name`.
+
+``pyramid.includes`` vs. :meth:`pyramid.config.Configurator.include`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Two methods exist for including packages: ``pyramid.includes`` and
+:meth:`pyramid.config.Configurator.include`.  This section explains their
+equivalence.
+
+Using PasteDeploy
++++++++++++++++++
+
+Using the following ``pyramid.includes`` setting in the PasteDeploy ``.ini``
+file in your application:
+
+.. code-block:: ini
+
+   [app:myapp]
+   pyramid.includes = pyramid_debugtoolbar
+                      pyramid_tm
+
+Is equivalent to using the following statements in your configuration code:
+
+.. code-block:: python
+   :linenos:
+
+   from pyramid.config import Configurator
+
+   def main(global_config, **settings):
+       config = Configurator(settings=settings)
+       # ...
+       config.include('pyramid_debugtoolbar')
+       config.include('pyramid_tm')
+       # ...
+
+It is fine to use both or either form.
+
+Plain Python
+++++++++++++
+
+Using the following ``pyramid.includes`` setting in your plain-Python Pyramid
+application: 
+
+.. code-block:: python
+   :linenos:
+
+   from pyramid.config import Configurator
+
+   if __name__ == '__main__':
+       settings = {'pyramid.includes':'pyramid_debugtoolbar pyramid_tm'}
+       config = Configurator(settings=settings)
+
+Is equivalent to using the following statements in your configuration code:
+
+.. code-block:: python
+   :linenos:
+
+   from pyramid.config import Configurator
+
+   if __name__ == '__main__':
+       settings = {}
+       config = Configurator(settings=settings)
+       config.include('pyramid_debugtoolbar')
+       config.include('pyramid_tm')
+
+It is fine to use both or either form.
+
+Explicit Tween Configuration
+----------------------------
+
+This value allows you to perform explicit :term:`tween` ordering in your
+configuration.  Tweens are bits of code used by add-on authors to extend
+Pyramid.  They form a chain, and require ordering.
+
+Ideally, you won't need to use the ``pyramid.tweens`` setting at all.  Tweens
+are generally ordered and included "implicitly" when an add-on package which
+registers a tween is "included".  Packages are included when you name a
+``pyramid.includes`` setting in your configuration or when you call
+:meth:`pyramid.config.Configuration.include`.
+
+Authors of included add-ons provide "implicit" tween configuration ordering
+hints to Pyramid when their packages are included.  However, the implicit
+tween ordering is only best-effort.  Pyramid will attempt to provide an
+implicit order of tweens as best it can using hints provided by add-on
+authors, but because it's only best-effort, if very precise tween ordering is
+required, the only surefire way to get it is to use an explicit tween order.
+You may be required to inspect your tween ordering (see
+:ref:`displaying_tweens`) and add a ``pyramid.tweens`` configuration value at
+the behest of an add-on author.
+
++---------------------------------+
+| Config File Setting Name        |
++=================================+
+| ``pyramid.tweens``              |
+|                                 |
+|                                 |
+|                                 |
++---------------------------------+
+
+The value supplied as ``pyramid.tweens`` should be a sequence.  The
+sequence can take several different forms.
+
+1) It can be a string.
+
+   If it is a string, the tween names can be separated by spaces::
+
+      pkg.tween_factory1 pkg.tween_factory2 pkg.tween_factory3
+
+    The tween names can also be separated by carriage returns::
+
+       pkg.tween_factory1
+       pkg.tween_factory2
+       pkg.tween_factory3
+
+2) It can be a Python list, where the values are strings::
+
+   ['pkg.tween_factory1', 'pkg.tween_factory2', 'pkg.tween_factory3']
+
+Each value in the sequence should be a :term:`dotted Python name`.
+
+Paste Configuration vs. Plain-Python Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using the following ``pyramid.tweens`` setting in the PasteDeploy ``.ini``
+file in your application:
+
+.. code-block:: ini
+
+   [app:myapp]
+   pyramid.tweens = pyramid_debugtoolbar.toolbar.tween_factory
+                    pyramid.tweens.excview_tween_factory
+                    pyramid_tm.tm_tween_factory
+
+Is equivalent to using the following statements in your configuration code:
+
+.. code-block:: python
+   :linenos:
+
+   from pyramid.config import Configurator
+ 
+   def main(global_config, **settings):
+       settings['pyramid.tweens'] = [
+               'pyramid_debugtoolbar.toolbar.tween_factory',
+               'pyramid.tweebs.excview_tween_factory',
+               'pyramid_tm.tm_tween_factory',
+                ]
+       config = Configurator(settings=settings)
+
+It is fine to use both or either form.
 
 .. _mako_template_renderer_settings:
 
@@ -195,7 +383,7 @@ Renderer uses a subclass of Mako's `template lookup
 several arguments to configure it.
 
 Mako Directories
-++++++++++++++++
+~~~~~~~~~~~~~~~~
 
 The value(s) supplied here are passed in as the template directories. They
 should be in :term:`asset specification` format, for example:
@@ -211,7 +399,7 @@ should be in :term:`asset specification` format, for example:
 +-----------------------------+
 
 Mako Module Directory
-+++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~
 
 The value supplied here tells Mako where to store compiled Mako templates. If
 omitted, compiled templates will be stored in memory. This value should be an
@@ -228,7 +416,7 @@ called ``data/templates`` in the same parent directory as the INI file.
 +-----------------------------+
 
 Mako Input Encoding
-+++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~
 
 The encoding that Mako templates are assumed to have. By default this is set
 to ``utf-8``. If you wish to use a different template encoding, this value
@@ -244,7 +432,7 @@ should be changed accordingly.
 +-----------------------------+
 
 Mako Error Handler
-++++++++++++++++++
+~~~~~~~~~~~~~~~~~~
 
 A callable (or a :term:`dotted Python name` which names a callable) which is
 called whenever Mako compile or runtime exceptions occur. The callable is
@@ -262,7 +450,7 @@ the function completes. Is used to provide custom error-rendering functions.
 +-----------------------------+
 
 Mako Default Filters
-++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~
 
 List of string filter names that will be applied to all Mako expressions.
 
@@ -276,7 +464,7 @@ List of string filter names that will be applied to all Mako expressions.
 +-----------------------------+
 
 Mako Import
-+++++++++++
+~~~~~~~~~~~
 
 String list of Python statements, typically individual "import" lines, which
 will be placed into the module level preamble of all generated Python modules.
@@ -293,7 +481,7 @@ will be placed into the module level preamble of all generated Python modules.
 
 
 Mako Strict Undefined
-+++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~
 
 ``true`` or ``false``, representing the "strict undefined" behavior of Mako
 (see `Mako Context Variables
@@ -310,7 +498,7 @@ default, this is ``false``.
 +-----------------------------+
 
 Mako Preprocessor
-+++++++++++++++++
+~~~~~~~~~~~~~~~~~
 
 A callable (or a :term:`dotted Python name` which names a callable) which is
 called to preprocess the source before the template is called.  The callable
@@ -343,8 +531,8 @@ an example of such a section:
 
   [app:main]
   use = egg:MyProject#app
-  reload_templates = true
-  debug_authorization = true
+  pyramid.reload_templates = true
+  pyramid.debug_authorization = true
 
 You can also use environment variables to accomplish the same purpose
 for settings documented as such.  For example, you might start your
@@ -361,18 +549,18 @@ respective settings in the ``[app:main]`` section of your
 application's ``.ini`` file.
 
 If you want to turn all ``debug`` settings (every setting that starts
-with ``debug_``). on in one fell swoop, you can use
+with ``pyramid.debug_``). on in one fell swoop, you can use
 ``PYRAMID_DEBUG_ALL=1`` as an environment variable setting or you may use
-``debug_all=true`` in the config file.  Note that this does not affect
-settings that do not start with ``debug_*`` such as
-``reload_templates``.
+``pyramid.debug_all=true`` in the config file.  Note that this does not affect
+settings that do not start with ``pyramid.debug_*`` such as
+``pyramid.reload_templates``.
 
-If you want to turn all ``reload`` settings (every setting that starts
-with ``reload_``) on in one fell swoop, you can use
+If you want to turn all ``pyramid.reload`` settings (every setting that starts
+with ``pyramid.reload_``) on in one fell swoop, you can use
 ``PYRAMID_RELOAD_ALL=1`` as an environment variable setting or you may use
-``reload_all=true`` in the config file.  Note that this does not
-affect settings that do not start with ``reload_*`` such as
-``debug_notfound``.
+``pyramid.reload_all=true`` in the config file.  Note that this does not
+affect settings that do not start with ``pyramid.reload_*`` such as
+``pyramid.debug_notfound``.
 
 .. note::
    Specifying configuration settings via environment variables is generally
@@ -389,35 +577,38 @@ affect settings that do not start with ``reload_*`` such as
 Understanding the Distinction Between ``reload_templates`` and ``reload_assets``
 --------------------------------------------------------------------------------
 
-The difference between ``reload_assets`` and ``reload_templates`` is a bit
-subtle.  Templates are themselves also treated by :app:`Pyramid` as asset
-files (along with other static files), so the distinction can be confusing.
-It's helpful to read :ref:`overriding_assets_section` for some context
-about assets in general.
+The difference between ``pyramid.reload_assets`` and
+``pyramid.reload_templates`` is a bit subtle. Templates are themselves also
+treated by :app:`Pyramid` as asset files (along with other static files), so the
+distinction can be confusing.  It's helpful to read
+:ref:`overriding_assets_section` for some context about assets in general.
 
-When ``reload_templates`` is true, :app:`Pyramid` takes advantage of the
+When ``pyramid.reload_templates`` is true, :app:`Pyramid` takes advantage of the
 underlying templating systems' ability to check for file modifications to an
-individual template file.  When ``reload_templates`` is true but
-``reload_assets`` is *not* true, the template filename returned by the
+individual template file.  When ``pyramid.reload_templates`` is true but
+``pyramid.reload_assets`` is *not* true, the template filename returned by the
 ``pkg_resources`` package (used under the hood by asset resolution) is cached
 by :app:`Pyramid` on the first request.  Subsequent requests for the same
 template file will return a cached template filename.  The underlying
 templating system checks for modifications to this particular file for every
-request.  Setting ``reload_templates`` to ``True`` doesn't affect performance
-dramatically (although it should still not be used in production because it
-has some effect).
+request.  Setting ``pyramid.reload_templates`` to ``True`` doesn't affect
+performance dramatically (although it should still not be used in production
+because it has some effect).
 
-However, when ``reload_assets`` is true, :app:`Pyramid` will not cache the
-template filename, meaning you can see the effect of changing the content of
-an overridden asset directory for templates without restarting the server
+However, when ``pyramid.reload_assets`` is true, :app:`Pyramid` will not cache
+the template filename, meaning you can see the effect of changing the content
+of an overridden asset directory for templates without restarting the server
 after every change.  Subsequent requests for the same template file may
 return different filenames based on the current state of overridden asset
-directories. Setting ``reload_assets`` to ``True`` affects performance
+directories. Setting ``pyramid.reload_assets`` to ``True`` affects performance
 *dramatically*, slowing things down by an order of magnitude for each
 template rendering.  However, it's convenient to enable when moving files
-around in overridden asset directories. ``reload_assets`` makes the system
-*very slow* when templates are in use.  Never set ``reload_assets`` to
-``True`` on a production system.
+around in overridden asset directories. ``pyramid.reload_assets`` makes the
+system *very slow* when templates are in use.  Never set
+``pyramid.reload_assets`` to ``True`` on a production system.
+
+.. index::
+   par: settings; adding custom
 
 .. _adding_a_custom_setting:
 

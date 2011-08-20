@@ -61,8 +61,8 @@ Here's some sample code that implements a minimal NotFound view callable:
    caused the not found view to be called.  The value of
    ``request.exception.message`` will be a value explaining why the not found
    error was raised.  This message will be different when the
-   ``debug_notfound`` environment setting is true than it is when it is
-   false.
+   ``pyramid.debug_notfound`` environment setting is true than it is when it
+   is false.
 
 .. warning:: When a NotFound view callable accepts an argument list as
    described in :ref:`request_and_context_view_definitions`, the ``context``
@@ -128,8 +128,8 @@ Here's some sample code that implements a minimal forbidden view:
    ``request.exception.message`` will be a value explaining why the forbidden
    was raised and ``request.exception.result`` will be extended information
    about the forbidden exception.  These messages will be different when the
-   ``debug_authorization`` environment setting is true than it is when it is
-   false.
+   ``pyramid.debug_authorization`` environment setting is true than it is when
+   it is false.
 
 .. index::
    single: request factory
@@ -218,7 +218,7 @@ Another (deprecated) mechanism which allows event subscribers more control
 when adding renderer global values exists in :ref:`adding_renderer_globals`.
 
 .. index::
-   single: renderer globals
+   single: adding renderer globals
 
 .. _adding_renderer_globals:
 
@@ -468,17 +468,18 @@ when the application :term:`root factory` returned an instance of the
 
 .. _changing_resource_url:
 
-Changing How :mod:`pyramid.url.resource_url` Generates a URL
-------------------------------------------------------------
+Changing How :meth:`pyramid.request.Request.resource_url` Generates a URL
+-------------------------------------------------------------------------
 
 When you add a traverser as described in :ref:`changing_the_traverser`, it's
-often convenient to continue to use the :func:`pyramid.url.resource_url` API.
-However, since the way traversal is done will have been modified, the URLs it
-generates by default may be incorrect.
+often convenient to continue to use the
+:meth:`pyramid.request.Request.resource_url` API.  However, since the way
+traversal is done will have been modified, the URLs it generates by default
+may be incorrect.
 
 If you've added a traverser, you can change how
-:func:`~pyramid.url.resource_url` generates a URL for a specific type of
-resource by adding a registerAdapter call for
+:meth:`~pyramid.request.Request.resource_url` generates a URL for a specific
+type of resource by adding a registerAdapter call for
 :class:`pyramid.interfaces.IContextURL` to your application:
 
 .. code-block:: python
@@ -493,8 +494,8 @@ resource by adding a registerAdapter call for
                                    IContextURL)
 
 In the above example, the ``myapp.traversal.URLGenerator`` class will be used
-to provide services to :func:`~pyramid.url.resource_url` any time the
-:term:`context` passed to ``resource_url`` is of class
+to provide services to :meth:`~pyramid.request.Request.resource_url` any time
+the :term:`context` passed to ``resource_url`` is of class
 ``myapp.resources.MyRoot``.  The second argument in the ``(MyRoot,
 Interface)`` tuple represents the type of interface that must be possessed by
 the :term:`request` (in this case, any interface, represented by
@@ -528,6 +529,7 @@ The default context URL generator is available for perusal as the class
 
 .. index::
    single: IResponse
+   single: special view responses
 
 .. _using_iresponse:
 
@@ -536,7 +538,8 @@ Changing How Pyramid Treats View Responses
 
 It is possible to control how Pyramid treats the result of calling a view
 callable on a per-type basis by using a hook involving
-:meth:`pyramid.config.Configurator.add_response_adapter`.
+:meth:`pyramid.config.Configurator.add_response_adapter` or the
+:class:`~pyramid.response.response_adapter` decorator.
 
 .. note:: This feature is new as of Pyramid 1.1.
 
@@ -600,6 +603,9 @@ to make sure the object implements every attribute and method outlined in
 :class:`pyramid.interfaces.IResponse` and you'll have to ensure that it's
 marked up with ``zope.interface.implements(IResponse)``:
 
+.. code-block:: python
+   :linenos:
+
    from pyramid.interfaces import IResponse
    from zope.interface import implements
 
@@ -619,6 +625,29 @@ An IResponse adapter for ``webob.Response`` (as opposed to
 startup time, as by their nature, instances of this class (and instances of
 subclasses of the class) will natively provide IResponse.  The adapter
 registered for ``webob.Response`` simply returns the response object.
+
+Instead of using :meth:`pyramid.config.Configurator.add_response_adapter`,
+you can use the :class:`pyramid.response.response_adapter` decorator:
+
+.. code-block:: python
+   :linenos:
+
+   from pyramid.response import Response
+   from pyramid.response import response_adapter
+
+   @response_adapter(str)
+   def string_response_adapter(s):
+       response = Response(s)
+       return response
+
+The above example, when scanned, has the same effect as:
+
+.. code-block:: python
+
+   config.add_response_adapter(string_response_adapter, str)
+
+The :class:`~pyramid.response.response_adapter` decorator will have no effect
+until activated by a :term:`scan`.
 
 .. index::
    single: view mapper
@@ -800,3 +829,330 @@ performed, enabling you to set up the utility in advance:
 For full details, please read the `Venusian documentation
 <http://docs.repoze.org/venusian>`_.
 
+.. _registering_tweens:
+
+Registering "Tweens"
+--------------------
+
+.. note:: Tweens are a feature which were added in Pyramid 1.2.  They are
+   not available in any previous version.
+
+A :term:`tween` (a contraction of the word "between") is a bit of code that
+sits between the Pyramid router's main request handling function and the
+upstream WSGI component that uses :app:`Pyramid` as its "app".  This is a
+feature that may be used by Pyramid framework extensions, to provide, for
+example, Pyramid-specific view timing support bookkeeping code that examines
+exceptions before they are returned to the upstream WSGI application.  Tweens
+behave a bit like :term:`WSGI` middleware but they have the benefit of
+running in a context in which they have access to the Pyramid
+:term:`application registry` as well as the Pyramid rendering machinery.
+
+Creating a Tween Factory
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To make use of tweens, you must construct a "tween factory".  A tween factory
+must be a globally importable callable which accepts two arguments:
+``handler`` and ``registry``.  ``handler`` will be the either the main
+Pyramid request handling function or another tween.  ``registry`` will be the
+Pyramid :term:`application registry` represented by this Configurator.  A
+tween factory must return a tween when it is called.
+
+A tween is a callable which accepts a :term:`request` object and returns a
+two-tuple a :term:`response` object.
+
+Here's an example of a tween factory:
+
+.. code-block:: python
+   :linenos:
+
+    # in a module named myapp.tweens
+
+    import time
+    from pyramid.settings import asbool
+    import logging
+
+    log = logging.getLogger(__name__)
+
+    def timing_tween_factory(handler, registry):
+        if asbool(registry.settings.get('do_timing')):
+            # if timing support is enabled, return a wrapper
+            def timing_tween(request):
+                start = time.time()
+                try:
+                    response = handler(request)
+                finally:
+                    end = time.time()
+                    log.debug('The request took %s seconds' %
+                              (end - start))
+                return response
+            return timing_tween
+        # if timing support is not enabled, return the original
+        # handler
+        return handler
+
+If you remember, a tween is an object which accepts a :term:`request` object
+and which returns a :term:`response` argument.  The ``request`` argument to a
+tween will be the request created by Pyramid's router when it receives a WSGI
+request.  The response object will be generated by the downstream Pyramid
+application and it should be returned by the tween.
+
+In the above example, the tween factory defines a ``timing_tween`` tween and
+returns it if ``asbool(registry.settings.get('do_timing'))`` is true.  It
+otherwise simply returns the handler it was given.  The ``registry.settings``
+attribute is a handle to the deployment settings provided by the user
+(usually in an ``.ini`` file).  In this case, if the user has defined a
+``do_timing`` setting, and that setting is ``True``, the user has said she
+wants to do timing, so the tween factory returns the timing tween; it
+otherwise just returns the handler it has been provided, preventing any
+timing.
+
+The example timing tween simply records the start time, calls the downstream
+handler, logs the number of seconds consumed by the downstream handler, and
+returns the response.
+
+Registering an Implicit Tween Factory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you've created a tween factory, you can register it into the implicit
+tween chain using the :meth:`pyramid.config.Configurator.add_tween` method
+using its :term:`dotted Python name`.
+
+Here's an example of registering the a tween factory as an "implicit"
+tween in a Pyramid application:
+
+.. code-block:: python
+   :linenos:
+
+    from pyramid.config import Configurator
+    config = Configurator()
+    config.add_tween('myapp.tweens.timing_tween_factory')
+
+Note that you must use a :term:`dotted Python name` as the first argument to
+:meth:`pyramid.config.Configurator.add_tween`; this must point at a tween
+factory.  You cannot pass the tween factory object itself to the method: it
+must be a globally importable object.  In the above example, we assume that a
+``timing_tween_factory`` tween factory was defined in a module named
+``myapp.tweens``, so the tween factory is importable as
+``myapp.tweens.timing_tween_factory``.
+
+When you use :meth:`pyramid.config.Configurator.add_tween`, you're
+instructing the system to use your tween factory at startup time unless the
+user has provided an explicit tween list in his configuration.  This is
+what's meant by an "implicit" tween.  A user can always elect to supply an
+explicit tween list, reordering or disincluding implicitly added tweens.  See
+:ref:`explicit_tween_ordering` for more information about explicit tween
+ordering.
+
+If more than one call to :meth:`pyramid.config.Configurator.add_tween` is
+made within a single application configuration, the tweens will be chained
+together at application startup time.  The *first* tween factory added via
+``add_tween`` will be called with the Pyramid exception view tween factory as
+its ``handler`` argument, then the tween factory added directly after that
+one will be called with the result of the first tween factory as its
+``handler`` argument, and so on, ad infinitum until all tween factories have
+been called. The Pyramid router will use the outermost tween produced by this
+chain (the tween generated by the very last tween factory added) as its
+request handler function.  For example:
+
+.. code-block:: python
+   :linenos:
+
+    from pyramid.config import Configurator
+
+    config = Configurator()
+    config.add_tween('myapp.tween_factory1')
+    config.add_tween('myapp.tween_factory2')
+
+The above example will generate an implicit tween chain that looks like
+this::
+
+    INGRESS (implicit)
+    myapp.tween_factory2
+    myapp.tween_factory1
+    pyramid.tweens.excview_tween_factory (implicit)
+    MAIN (implicit)
+
+Suggesting Implicit Tween Ordering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, as described above, the ordering of the chain is controlled
+entirely by the relative ordering of calls to
+:meth:`pyramid.config.Configurator.add_tween`.  However, the caller of
+add_tween can provide an optional hint that can influence the implicit tween
+chain ordering by supplying ``under`` or ``over`` (or both) arguments to
+:meth:`~pyramid.config.Configurator.add_tween`.  These hints are only used
+used when an explicit tween ordering is not used. See
+:ref:`explicit_tween_ordering` for a description of how to set an explicit
+tween ordering.
+
+Allowable values for ``under`` or ``over`` (or both) are:
+
+- ``None`` (the default).
+
+- A :term:`dotted Python name` to a tween factory: a string representing the
+  predicted dotted name of a tween factory added in a call to ``add_tween``
+  in the same configuration session.
+
+- A "tween alias": a string representing the predicted value of ``alias`` in
+  a separate call to ``add_tween`` in the same configuration session
+
+- One of the constants :attr:`pyramid.tweens.MAIN`,
+  :attr:`pyramid.tweens.INGRESS`, or :attr:`pyramid.tweens.EXCVIEW`.
+
+- An iterable of any combination of the above. This allows the user to specify
+  fallbacks if the desired tween is not included, as well as compatibility
+  with multiple other tweens.
+
+Effectively, ``under`` means "closer to the main Pyramid application than",
+``over`` means "closer to the request ingress than".
+
+For example, the following call to
+:meth:`~pyramid.config.Configurator.add_tween` will attempt to place the
+tween factory represented by ``myapp.tween_factory`` directly 'above' (in
+``paster ptweens`` order) the main Pyramid request handler.
+
+.. code-block:: python
+   :linenos:
+
+   import pyramid.tweens
+
+   config.add_tween('myapp.tween_factory', over=pyramid.tweens.MAIN)
+
+The above example will generate an implicit tween chain that looks like
+this::
+
+    INGRESS (implicit)
+    pyramid.tweens.excview_tween_factory (implicit)
+    myapp.tween_factory
+    MAIN (implicit)
+
+Likewise, calling the following call to
+:meth:`~pyramid.config.Configurator.add_tween` will attempt to place this
+tween factory 'above' the main handler but 'below' a separately added tween
+factory:
+
+.. code-block:: python
+   :linenos:
+
+   import pyramid.tweens
+
+   config.add_tween('myapp.tween_factory1',
+                    over=pyramid.tweens.MAIN)
+   config.add_tween('myapp.tween_factory2',
+                    over=pyramid.tweens.MAIN,
+                    under='myapp.tween_factory1')
+
+The above example will generate an implicit tween chain that looks like
+this::
+
+    INGRESS (implicit)
+    pyramid.tweens.excview_tween_factory (implicit)
+    myapp.tween_factory1
+    myapp.tween_factory2
+    MAIN (implicit)
+
+Specifying neither ``over`` nor ``under`` is equivalent to specifying
+``under=INGRESS``.
+
+If all options for ``under`` (or ``over``) cannot be found in the current
+configuration, it is an error. If some options are specified purely for
+compatibilty with other tweens, just add a fallback of MAIN or INGRESS.
+For example, ``under=('someothertween', 'someothertween2', INGRESS)``.
+This constraint will require the tween to be located under both the
+'someothertween' tween, the 'someothertween2' tween, and INGRESS. If any of
+these is not in the current configuration, this constraint will only organize
+itself based on the tweens that are present.
+
+:meth:`~pyramid.config.Configurator.add_tween` also accepts an ``alias``
+argument.  If ``alias`` is not ``None``, should be a string.  The string will
+represent a value that other callers of ``add_tween`` may pass as an
+``under`` and ``over`` argument instead of a dotted name to a tween factory.
+For example:
+
+.. code-block:: python
+   :linenos:
+
+   import pyramid.tweens
+
+   config.add_tween('myapp.tween_factory1',
+                    alias='one'
+                    over=pyramid.tweens.MAIN)
+   config.add_tween('myapp.tween_factory2',
+                    alias='two'
+                    over=pyramid.tweens.MAIN,
+                    under='one')
+
+Alias names are only useful in relation to ``under`` and ``over`` values.
+They cannot be used in explicit tween chain configuration, or anywhere else.
+
+.. _explicit_tween_ordering:
+
+Explicit Tween Ordering
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Implicit tween ordering is obviously only best-effort.  Pyramid will attempt
+to provide an implicit order of tweens as best it can using hints provided by
+calls to :meth:`~pyramid.config.Configurator.add_tween`, but because it's
+only best-effort, if very precise tween ordering is required, the only
+surefire way to get it is to use an explicit tween order.  The deploying user
+can override the implicit tween inclusion and ordering implied by calls to
+:meth:`~pyramid.config.Configurator.add_tween` entirely by using the
+``pyramid.tweens`` settings value.  When used, this settings value must be a
+list of Python dotted names which will override the ordering (and inclusion)
+of tween factories in the implicit tween chain.  For example:
+
+.. code-block:: ini
+   :linenos:
+
+   [app:main]
+   use = egg:MyApp
+   pyramid.reload_templates = true
+   pyramid.debug_authorization = false
+   pyramid.debug_notfound = false
+   pyramid.debug_routematch = false
+   pyramid.debug_templates = true
+   pyramid.tweens = myapp.my_cool_tween_factory
+                    pyramid.tweens.excview_tween_factory
+
+In the above configuration, calls made during configuration to
+:meth:`pyramid.config.Configurator.add_tween` are ignored, and the user is
+telling the system to use the tween factories he has listed in the
+``pyramid.tweens`` configuration setting (each is a :term:`dotted Python
+name` which points to a tween factory) instead of any tween factories added
+via :meth:`pyramid.config.Configurator.add_tween`.  The *first* tween factory
+in the ``pyramid.tweens`` list will be used as the producer of the effective
+:app:`Pyramid` request handling function; it will wrap the tween factory
+declared directly "below" it, ad infinitum.  The "main" Pyramid request
+handler is implicit, and always "at the bottom".
+
+.. note:: Pyramid's own :term:`exception view` handling logic is implemented
+   as a tween factory function: :func:`pyramid.tweens.excview_tween_factory`.
+   If Pyramid exception view handling is desired, and tween factories are
+   specified via the ``pyramid.tweens`` configuration setting, the
+   :func:`pyramid.tweens.excview_tween_factory` function must be added to the
+   ``pyramid.tweens`` configuration setting list explicitly.  If it is not
+   present, Pyramid will not perform exception view handling.
+
+Tween Conflicts and Ordering Cycles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pyramid will prevent the same tween factory from being added to the tween
+chain more than once using configuration conflict detection.  If you wish to
+add the same tween factory more than once in a configuration, you should
+either: a) use a tween factory that is a separate globally importable
+instance object from the factory that it conflicts with b) use a function or
+class as a tween factory with the same logic as the other tween factory it
+conflicts with but with a different ``__name__`` attribute or c) call
+:meth:`pyramid.config.Configurator.commit` between calls to
+:meth:`pyramid.config.Configurator.add_tween`.
+
+If a cycle is detected in implicit tween ordering when ``over`` and ``under``
+are used in any call to "add_tween", an exception will be raised at startup
+time.
+
+Displaying Tween Ordering
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``paster ptweens`` command-line utility can be used to report the current
+implict and explicit tween chains used by an application.  See
+:ref:`displaying_tweens`.

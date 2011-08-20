@@ -30,7 +30,7 @@ install_requires=[
     'Mako >= 0.3.6', # strict_undefined
     'Paste > 1.7', # temp version pin to prevent PyPi install failure :-(
     'PasteDeploy',
-    'PasteScript',
+    'PasteScript >= 1.7.4', # "here" in logging fileConfig
     'WebOb >= 1.0.2', # no "default_charset"; request.script_name doesnt error
     'repoze.lru',
     'setuptools',
@@ -53,7 +53,7 @@ if sys.version_info[:2] < (2, 6):
     install_requires.append('simplejson')
     
 setup(name='pyramid',
-      version='1.1b3',
+      version='1.2dev',
       description=('The Pyramid web application development framework, a '
                    'Pylons project'),
       long_description=README + '\n\n' +  CHANGES,
@@ -86,6 +86,7 @@ setup(name='pyramid',
         pshell=pyramid.paster:PShellCommand
         proutes=pyramid.paster:PRoutesCommand
         pviews=pyramid.paster:PViewsCommand
+        ptweens=pyramid.paster:PTweensCommand
         [console_scripts]
         bfg2pyramid = pyramid.fixers.fix_bfg_imports:main
       """
