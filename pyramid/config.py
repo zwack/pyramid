@@ -1597,12 +1597,9 @@ class Configurator(object):
                   static=False,
                   defaults=None,
                   ):
-        """ Add a :term:`route configuration` to the current
-        configuration state, as well as possibly a :term:`view
-        configuration` to be used to specify a :term:`view callable`
-        that will be invoked when this route matches.  The arguments
-        to this method are divided into *predicate*, *non-predicate*,
-        and *view-related* types.  :term:`Route predicate` arguments
+        """ Add a :term:`route configuration` to the current configuration
+        state  The arguments to this method are divided into *predicate*,
+        *non-predicate*, types. :term:`Route predicate` arguments
         narrow the circumstances in which a route will be match a
         request; non-predicate arguments are informational.
 
@@ -1610,8 +1607,8 @@ class Configurator(object):
 
         name
 
-          The name of the route, e.g. ``myroute``.  This attribute is
-          required.  It must be unique among all defined routes in a given
+          The name of the route, e.g. ``myroute``. This attribute is
+          required. It must be unique among all defined routes in a given
           application.
 
         factory
@@ -1699,7 +1696,7 @@ class Configurator(object):
           one key in the ``pattern``. This only affects url generation
           and will be applied before the ``pregenerator``.
 
-          .. note:: New in :app:`Pyramid` 1.1.
+          .. note:: New in :app:`Pyramid` 1.2.
 
         Predicate Arguments
 
@@ -1936,23 +1933,45 @@ class Configurator(object):
                 attr=view_attr,
             )
 
-        mapper = self.get_routes_mapper()
-
         factory = self.maybe_dotted(factory)
         if pattern is None:
             pattern = path
         if pattern is None:
             raise ConfigurationError('"pattern" argument may not be None')
 
-        discriminator = ('route', name)
-        self.action(discriminator, None)
-
         # wrap defaults into a pregenerator
         if defaults:
             pregenerator = DefaultsPregenerator(defaults, pregenerator)
 
+        mapper = self.get_routes_mapper()
+
+        if not mapper.get_group(name):
+            discriminator = ('route', name)
+        else:
+            discriminator = ('route', name, pattern)
+        self.action(discriminator, None)
+
         return mapper.connect(name, pattern, factory, predicates=predicates,
                               pregenerator=pregenerator, static=static)
+
+    @action_method
+    def add_route_group(self, name):
+        """ Create a group to which routes can link. Groups are used purely
+        for assisting in URL generation. Any views added to a group will be
+        added to every route in the group. To link a new route to a group,
+        the name of the group should be used as the route name.
+        For example::
+
+            config.add_route_group('foo')
+            config.add_route('foo', '/bar')
+            config.add_route('foo', '/baz/{id}')
+        """
+        mapper = self.get_routes_mapper()
+
+        discriminator = ('route', name)
+        self.action(discriminator, None)
+
+        return mapper.add_group(name)
 
     def get_routes_mapper(self):
         """ Return the :term:`routes mapper` object associated with

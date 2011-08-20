@@ -593,15 +593,14 @@ class IRoutePregenerator(Interface):
                 return elements, kw
 
         You can employ a pregenerator by passing a ``pregenerator``
-        argument to the
-        :meth:`pyramid.config.Configurator.add_route`
+        argument to the :meth:`pyramid.config.Configurator.add_route`
         function.
 
         """
 
 class IRoute(Interface):
     """ Interface representing the type of object returned from
-    ``IRoutesMapper.get_route``"""
+    :meth:`pyramid.interfaces.IRoutesMapper.get_route`"""
     name = Attribute('The route name')
     pattern = Attribute('The route pattern')
     factory = Attribute(
@@ -611,9 +610,10 @@ class IRoute(Interface):
         'A sequence of :term:`route predicate` objects used to '
         'determine if a request matches this route or not or not after '
         'basic pattern matching has been completed.')
-    pregenerator = Attribute('This attribute should either be ``None`` or '
-                             'a callable object implementing the '
-                             '``IRoutePregenerator`` interface')
+    pregenerator = Attribute(
+        'This attribute should either be ``None`` or a callable object '
+        'implementing the :meth:`~pyramid.interfaces.IRoutePregenerator`` '
+        'interface')
     def match(path):
         """
         If the ``path`` passed to this function can be matched by the
@@ -625,10 +625,43 @@ class IRoute(Interface):
         If the ``path`` passed to this function cannot be matched by
         the ``pattern`` of this route, return ``None``.
         """
+
     def generate(kw):
         """
         Generate a URL based on filling in the dynamic segment markers
         in the pattern using the ``kw`` dictionary provided.
+        """
+
+    def gen(request, elements, kw):
+        """
+        Generate a URL by executing the pregenerator for the route and
+        passing the resulting ``kw`` dictionary to the
+        :meth:`~pyramid.interfaces.IRoute.generate`. The resulting
+        ``elements`` path segments are joined to the generated URL.
+        """
+
+class IRouteGroup(Interface):
+    """ Interface representing the type of object returned from
+    :meth:`pyramid.interfaces.IRoutesMapper.get_group`"""
+    name = Attribute('The group name')
+    routes = Attribute('A sequence of ``IRoute`` objects')
+
+    def add(route):
+        """
+        Add a new route to the group. ``route`` should be an ``IRoute``
+        object.
+        """
+
+    def gen(request, elements, kw):
+        """
+        Generate a URL by executing the pregenerator for the route and
+        passing the resulting ``kw`` dictionary to the
+        :meth:`~pyramid.interfaces.IRoute.generate`. The resulting
+        ``elements`` path segments are joined to the generated URL.
+
+        The specific route that is generated is determined based on a
+        matching of the ``kw`` args to the required args of the individual
+        routes in the group.
         """
 
 class IRoutesMapper(Interface):
@@ -643,6 +676,13 @@ class IRoutesMapper(Interface):
     def get_route(name):
         """ Returns an ``IRoute`` object if a route with the name ``name``
         was registered, otherwise return ``None``."""
+
+    def get_group(name):
+        """ Returns an ``IRouteGroup`` object if a group with the name
+        ``name`` was registered, otherwise return ``None``."""
+
+    def add_group(name):
+        """ Add a group to the mapper for connecting routes."""
 
     def connect(name, pattern, factory=None, predicates=(), pregenerator=None,
                 static=True):

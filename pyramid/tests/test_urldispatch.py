@@ -218,16 +218,16 @@ class RoutesMapperTests(unittest.TestCase):
         self.assertEqual(result['match'], None)
         self.assertEqual(result['route'], None)
 
-#    def test_connect_name_exists_removes_old(self):
-#        mapper = self._makeOne()
-#        mapper.connect('foo', 'archives/:action/:article')
-#        mapper.connect('foo', 'archives/:action/:article2')
-#        self.assertEqual(len(mapper.routelist), 1)
-#        self.assertEqual(len(mapper.routes), 1)
-#        self.assertEqual(mapper.routes['foo'].pattern,
-#                         'archives/:action/:article2')
-#        self.assertEqual(mapper.routelist[0].pattern,
-#                         'archives/:action/:article2')
+    def test_connect_name_exists_removes_old(self):
+        mapper = self._makeOne()
+        mapper.connect('foo', 'archives/:action/:article')
+        mapper.connect('foo', 'archives/:action/:article2')
+        self.assertEqual(len(mapper.routelist), 1)
+        self.assertEqual(len(mapper.routes), 1)
+        self.assertEqual(mapper.routes['foo'].pattern,
+                         'archives/:action/:article2')
+        self.assertEqual(mapper.routelist[0].pattern,
+                         'archives/:action/:article2')
 
     def test_connect_static(self):
         mapper = self._makeOne()
@@ -237,20 +237,20 @@ class RoutesMapperTests(unittest.TestCase):
         self.assertEqual(mapper.routes['foo'].pattern,
                          'archives/:action/:article')
 
-#    def test_connect_static_overridden(self):
-#        mapper = self._makeOne()
-#        mapper.connect('foo', 'archives/:action/:article', static=True)
-#        self.assertEqual(len(mapper.routelist), 0)
-#        self.assertEqual(len(mapper.routes), 1)
-#        self.assertEqual(mapper.routes['foo'].pattern,
-#                         'archives/:action/:article')
-#        mapper.connect('foo', 'archives/:action/:article2')
-#        self.assertEqual(len(mapper.routelist), 1)
-#        self.assertEqual(len(mapper.routes), 1)
-#        self.assertEqual(mapper.routes['foo'].pattern,
-#                         'archives/:action/:article2')
-#        self.assertEqual(mapper.routelist[0].pattern,
-#                         'archives/:action/:article2')
+    def test_connect_static_overridden(self):
+        mapper = self._makeOne()
+        mapper.connect('foo', 'archives/:action/:article', static=True)
+        self.assertEqual(len(mapper.routelist), 0)
+        self.assertEqual(len(mapper.routes), 1)
+        self.assertEqual(mapper.routes['foo'].pattern,
+                         'archives/:action/:article')
+        mapper.connect('foo', 'archives/:action/:article2')
+        self.assertEqual(len(mapper.routelist), 1)
+        self.assertEqual(len(mapper.routes), 1)
+        self.assertEqual(mapper.routes['foo'].pattern,
+                         'archives/:action/:article2')
+        self.assertEqual(mapper.routelist[0].pattern,
+                         'archives/:action/:article2')
 
     def test___call__route_matches(self):
         mapper = self._makeOne()
@@ -386,6 +386,52 @@ class RoutesMapperTests(unittest.TestCase):
         route = DummyRoute(generator)
         mapper.routes['abc'] =  route
         self.assertEqual(mapper.generate('abc', {}), 123)
+
+    def test_add_group(self):
+        mapper = self._makeOne()
+        group = mapper.add_group('foo')
+        groups = mapper.get_groups()
+        self.assertTrue('foo' in groups)
+        self.assertEqual(group.name, 'foo')
+
+    def test_connect_to_group(self):
+        mapper = self._makeOne()
+        group = mapper.add_group('foo')
+        mapper.connect('foo', '/bar')
+        mapper.connect('foo', '/baz')
+        self.assertEqual(len(mapper.routes), 1)
+        self.assertEqual(len(group.routes), 2)
+
+    def test_add_group_removes_old_group(self):
+        mapper = self._makeOne()
+        mapper.add_group('foo')
+        mapper.connect('foo', 'archives/:action')
+        mapper.add_group('foo')
+        mapper.connect('foo', 'archives/:action/:article2')
+        group = mapper.get_group('foo')
+        self.assertEqual(len(mapper.routelist), 1)
+        self.assertEqual(len(mapper.routes), 1)
+        self.assertEqual(len(mapper.groups), 1)
+        self.assertEqual(len(group.routes), 1)
+        self.assertEqual(group.routes[0].pattern,
+                         'archives/:action/:article2')
+        self.assertEqual(mapper.routelist[0].pattern,
+                         'archives/:action/:article2')
+
+    def test_add_group_removes_old_route(self):
+        mapper = self._makeOne()
+        mapper.connect('foo', 'archives/:action')
+        mapper.add_group('foo')
+        mapper.connect('foo', 'archives/:action/:article2')
+        group = mapper.get_group('foo')
+        self.assertEqual(len(mapper.routelist), 1)
+        self.assertEqual(len(mapper.routes), 1)
+        self.assertEqual(len(mapper.groups), 1)
+        self.assertEqual(len(group.routes), 1)
+        self.assertEqual(group.routes[0].pattern,
+                         'archives/:action/:article2')
+        self.assertEqual(mapper.routelist[0].pattern,
+                         'archives/:action/:article2')
 
 class TestCompileRoute(unittest.TestCase):
     def _callFUT(self, pattern):

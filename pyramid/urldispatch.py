@@ -2,10 +2,10 @@ import itertools
 import re
 from bisect import insort
 from urllib import unquote
-from zope.interface import implements
 
-from pyramid.interfaces import IRoutesMapper
 from pyramid.interfaces import IRoute
+from pyramid.interfaces import IRouteGroup
+from pyramid.interfaces import IRoutesMapper
 
 from pyramid.compat import all
 from pyramid.encode import url_quote
@@ -13,6 +13,8 @@ from pyramid.exceptions import URLDecodeError
 from pyramid.traversal import traversal_path
 from pyramid.traversal import quote_path_segment
 from pyramid.util import join_elements
+
+from zope.interface import implements
 
 
 _marker = object()
@@ -45,6 +47,7 @@ class Route(object):
         return path + suffix, kw
 
 class RouteGroup(object):
+    implements(IRouteGroup)
     def __init__(self, name):
         self.name = name
         self.counter = itertools.count(1)
@@ -87,6 +90,7 @@ class RouteGroup(object):
         self.routes.append(route)
 
         args = frozenset(route.args)
+        # -len(args) sorts routes in descending order by the number of args
         entry = (-len(args), next(self.counter), args, route)
         insort(self.sorted_routes, entry)
 
@@ -95,6 +99,7 @@ class RoutesMapper(object):
     def __init__(self):
         self.routelist = []
         self.routes = {}
+        self.groups = {}
 
     def has_routes(self):
         return bool(self.routelist)
@@ -102,25 +107,44 @@ class RoutesMapper(object):
     def get_routes(self):
         return self.routelist
 
+    def get_groups(self):
+        return self.groups
+
     def get_route(self, name):
         return self.routes.get(name)
+
+    def get_group(self, name):
+        return self.groups.get(name)
 
     def connect(self, name, pattern, factory=None, predicates=(),
                 pregenerator=None, static=False):
         route = Route(name, pattern, factory, predicates, pregenerator)
-        if not static:
-            self.routelist.append(route)
-
-        if name in self.routes:
-            group = self.routes[name]
-            if IRoute.providedBy(group):
-                group, oldroute = RouteGroup(name), group
-                group.add(oldroute)
-                self.routes[name] = group
+        group = self.get_group(name)
+        if group is not None:
             group.add(route)
         else:
+            oldroute = self.get_route(name)
+            if oldroute in self.routelist:
+                self.routelist.remove(oldroute)
             self.routes[name] = route
+        if not static:
+            self.routelist.append(route)
         return route
+
+    def add_group(self, name):
+        oldgroup = self.get_group(name)
+        oldroute = self.get_route(name)
+        if oldgroup is not None:
+            for route in oldgroup.routes:
+                if route in self.routelist:
+                    self.routelist.remove(route)
+        elif oldroute is not None:
+            if oldroute in self.routelist:
+                self.routelist.remove(oldroute)
+        group = RouteGroup(name)
+        self.groups[name] = group
+        self.routes[name] = group
+        return group
 
     def generate(self, name, kw):
         return self.routes[name].generate(kw)

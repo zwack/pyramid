@@ -2205,6 +2205,26 @@ class ConfiguratorTests(unittest.TestCase):
         else: # pragma: no cover
             raise AssertionError
 
+    def test_add_route_group(self):
+        config = self._makeOne(autocommit=True)
+        group = config.add_route_group('foo')
+        self.assertEqual(group.name, 'foo')
+
+    def test_add_routes_to_group(self):
+        config = self._makeOne()
+        group = config.add_route_group('foo')
+        route1 = config.add_route('foo', '/pattern')
+        route2 = config.add_route('foo', '/pattern2')
+        self.assertEqual(len(group.routes), 2)
+        self.assertEqual(group.routes, [route1, route2])
+
+    def test_add_route_group_conflicts_with_route(self):
+        from zope.configuration.config import ConfigurationConflictError
+        config = self._makeOne()
+        config.add_route('foo', '/pattern')
+        config.add_route_group('foo')
+        self.assertRaises(ConfigurationConflictError, config.commit)
+
     def test_derive_view_function(self):
         def view(request):
             return 'OK'
