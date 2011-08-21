@@ -178,7 +178,7 @@ class TestRouteGroup(unittest.TestCase):
         group.add(route1)
 
         path, kw = group.gen(request, (), {'a':1, 'b':2, 'c':3})
-        self.assertEqual(path, '/p/1/2/3')
+        self.assertEqual(path, '/1/2/3')
         self.assertEqual(kw, {'a':1, 'b':2, 'c':3})
 
 class RoutesMapperTests(unittest.TestCase):

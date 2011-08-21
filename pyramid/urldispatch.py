@@ -52,7 +52,7 @@ class RouteGroup(object):
         self.routes = []
         self.sorted_routes = []
 
-    def _match_route(self, request, elements, kw):
+    def _find_best_match(self, request, elements, kw):
         """ Compare the provided keys to the required args of a route.
 
         The selected route is the first one with all required keys satisfied.
@@ -71,7 +71,7 @@ class RouteGroup(object):
                        'provided keys "%s"' % (self.name, sorted(keys)))
 
     def gen(self, request, elements, kw):
-        route, elements, kw = self._match_route(request, elements, kw)
+        route, elements, kw = self._find_best_match(request, elements, kw)
 
         path = route.generate(kw)
 
@@ -89,7 +89,8 @@ class RouteGroup(object):
 
         args = frozenset(route.args)
         # -len(args) sorts routes in descending order by the number of args
-        entry = (-len(args), next(self.counter), args, route)
+        # -next(self.counter) sorts routes in reverse order of adding
+        entry = (-len(args), -next(self.counter), args, route)
         insort(self.sorted_routes, entry)
 
 class RoutesMapper(object):
