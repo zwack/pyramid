@@ -1,3 +1,4 @@
+import os
 import pkg_resources
 import sys
 
@@ -19,7 +20,7 @@ class OverrideProvider(pkg_resources.DefaultProvider):
         reg = get_current_registry()
         overrides = reg.queryUtility(IPackageOverrides, self.module_name)
         return overrides
-    
+
     def get_resource_filename(self, manager, resource_name):
         """ Return a true filesystem path for resource_name,
         co-ordinating the extraction with manager, if the resource
@@ -27,19 +28,21 @@ class OverrideProvider(pkg_resources.DefaultProvider):
         """
         overrides = self._get_overrides()
         if overrides is not None:
-            filename = overrides.get_filename(resource_name)
-            if filename is not None:
-                return filename
+            for override in overrides:
+                filename = override.get_filename(resource_name)
+                if filename is not None:
+                    return filename
         return pkg_resources.DefaultProvider.get_resource_filename(
             self, manager, resource_name)
-    
+
     def get_resource_stream(self, manager, resource_name):
         """ Return a readable file-like object for resource_name."""
         overrides = self._get_overrides()
         if overrides is not None:
-            stream =  overrides.get_stream(resource_name)
-            if stream is not None:
-                return stream
+            for override in overrides:
+                stream =  override.get_stream(resource_name)
+                if stream is not None:
+                    return stream
         return pkg_resources.DefaultProvider.get_resource_stream(
             self, manager, resource_name)
 
@@ -47,39 +50,43 @@ class OverrideProvider(pkg_resources.DefaultProvider):
         """ Return a string containing the contents of resource_name."""
         overrides = self._get_overrides()
         if overrides is not None:
-            string = overrides.get_string(resource_name)
-            if string is not None:
-                return string
+            for override in overrides:
+                string = override.get_string(resource_name)
+                if string is not None:
+                    return string
         return pkg_resources.DefaultProvider.get_resource_string(
             self, manager, resource_name)
 
     def has_resource(self, resource_name):
         overrides = self._get_overrides()
         if overrides is not None:
-            result = overrides.has_resource(resource_name)
-            if result is not None:
-                return result
+            for override in overrides:
+                result = override.has_resource(resource_name)
+                if result is not None:
+                    return result
         return pkg_resources.DefaultProvider.has_resource(
             self, resource_name)
 
     def resource_isdir(self, resource_name):
         overrides = self._get_overrides()
         if overrides is not None:
-            result = overrides.isdir(resource_name)
-            if result is not None:
-                return result
+            for override in overrides:
+                result = override.isdir(resource_name)
+                if result is not None:
+                    return result
         return pkg_resources.DefaultProvider.resource_isdir(
             self, resource_name)
 
     def resource_listdir(self, resource_name):
         overrides = self._get_overrides()
         if overrides is not None:
-            result = overrides.listdir(resource_name)
-            if result is not None:
-                return result
+            for override in overrides:
+                result = override.listdir(resource_name)
+                if result is not None:
+                    return result
         return pkg_resources.DefaultProvider.resource_listdir(
             self, resource_name)
-        
+
 @implementer(IPackageOverrides)
 class PackageOverrides:
     # pkg_resources arg in kw args below for testing
@@ -99,93 +106,140 @@ class PackageOverrides:
         # optional)...
         # A __loader__ attribute is basically metadata, and setuptools
         # uses it as such.
-        package.__loader__ = self 
+        package.__loader__ = self
         # we call register_loader_type for every instantiation of this
         # class; that's OK, it's idempotent to do it more than once.
         pkg_resources.register_loader_type(self.__class__, OverrideProvider)
         self.overrides = []
         self.overridden_package_name = package.__name__
 
-    def insert(self, path, package, prefix):
-        if not path or path.endswith('/'):
-            override = DirectoryOverride(path, package, prefix)
-        else:
-            override = FileOverride(path, package, prefix)
+    def insert(self, path, pkg_or_path, prefix):
+        override = make_override(path, pkg_or_path, prefix)
         self.overrides.insert(0, override)
         return override
 
-    def search_path(self, resource_name):
-        for override in self.overrides:
-            o = override(resource_name)
-            if o is not None:
-                package, name = o
-                yield package, name
+    def __iter__(self):
+        return iter(self.overrides)
 
-    def get_filename(self, resource_name):
-        for package, rname in self.search_path(resource_name):
-            if pkg_resources.resource_exists(package, rname):
-                return pkg_resources.resource_filename(package, rname)
 
-    def get_stream(self, resource_name):
-        for package, rname in self.search_path(resource_name):
-            if pkg_resources.resource_exists(package, rname):
-                return pkg_resources.resource_stream(package, rname)
+def make_override(path, pkg_or_path, prefix):
+    if isinstance(pkg_or_path, basestring):
+        return FSOverride(path, pkg_or_path)
+    return PKGOverride(path, pkg_or_path, prefix)
 
-    def get_string(self, resource_name):
-        for package, rname in self.search_path(resource_name):
-            if pkg_resources.resource_exists(package, rname):
-                return pkg_resources.resource_string(package, rname)
 
-    def has_resource(self, resource_name):
-        for package, rname in self.search_path(resource_name):
-            if pkg_resources.resource_exists(package, rname):
-                return True
-
-    def isdir(self, resource_name):
-        for package, rname in self.search_path(resource_name):
-            if pkg_resources.resource_exists(package, rname):
-                return pkg_resources.resource_isdir(package, rname)
-
-    def listdir(self, resource_name):
-        for package, rname in self.search_path(resource_name):
-            if pkg_resources.resource_exists(package, rname):
-                return pkg_resources.resource_listdir(package, rname)
-    
-
-class DirectoryOverride:
+class PKGOverride:
     def __init__(self, path, package, prefix):
         self.path = path
         self.package = package
         self.prefix = prefix
         self.pathlen = len(self.path)
 
-    def __call__(self, resource_name):
-        if resource_name.startswith(self.path):
-            name = '%s%s' % (self.prefix, resource_name[self.pathlen:])
-            return self.package, name
-
-class FileOverride:
-    def __init__(self, path, package, prefix):
-        self.path = path
-        self.package = package
-        self.prefix = prefix
-
-    def __call__(self, resource_name):
-        if resource_name == self.path:
+    def resolve(self, resource_name):
+        path = self.path
+        if not path or path.endswith('/'):
+            if resource_name.startswith(path):
+                name = '%s%s' % (self.prefix, resource_name[self.pathlen:])
+                if pkg_resources.resource_exists(self.package, name):
+                    return self.package, name
+        elif resource_name == path:
             return self.package, self.prefix
+
+    def get_filename(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            package, rname = resolution
+            return pkg_resources.resource_filename(package, rname)
+
+    def get_stream(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            package, rname = resolution
+            return pkg_resources.resource_stream(package, rname)
+
+    def get_string(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            package, rname = resolution
+            return pkg_resources.resource_string(package, rname)
+
+    def has_resource(self, resource_name):
+        return self.resolve(resource_name) is not None
+
+    def isdir(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            package, rname = resolution
+            return pkg_resources.resource_isdir(package, rname)
+
+    def listdir(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            package, rname = resolution
+            return pkg_resources.resource_listdir(package, rname)
+
+
+class FSOverride:
+    def __init__(self, path, override_path):
+        self.path = path
+        self.override_path = override_path
+        self.pathlen = len(self.path)
+
+    def resolve(self, resource_name):
+        path = self.path
+        if not path or path.endswith('/'):
+            if resource_name.startswith(path):
+                fpath = os.path.join(
+                    self.override_path, resource_name[self.pathlen:])
+                if os.path.exists(fpath):
+                    return fpath
+        elif resource_name == path:
+            return self.override_path
+
+    def get_filename(self, resource_name):
+        return self.resolve(resource_name)
+
+    def get_stream(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            return open(resolution, 'rb')
+
+    def get_string(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            with open(resolution, 'rb') as f:
+                return f.read()
+
+    def has_resource(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            return True
+
+    def isdir(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            return os.path.isdir(self.resolve(resource_name))
+
+    def listdir(self, resource_name):
+        resolution = self.resolve(resource_name)
+        if resolution:
+            return os.listdir(resolution)
 
 
 class AssetsConfiguratorMixin(object):
     def _override(self, package, path, override_package, override_prefix,
                   PackageOverrides=PackageOverrides):
         pkg_name = package.__name__
-        override_pkg_name = override_package.__name__
-        override = self.registry.queryUtility(IPackageOverrides, name=pkg_name)
-        if override is None:
-            override = PackageOverrides(package)
-            self.registry.registerUtility(override, IPackageOverrides,
+        if isinstance(override_package, basestring):
+            override_pkg_name = override_package
+        else:
+            override_pkg_name = override_package.__name__
+        overrides = self.registry.queryUtility(IPackageOverrides, name=pkg_name)
+        if overrides is None:
+            overrides = PackageOverrides(package)
+            self.registry.registerUtility(overrides, IPackageOverrides,
                                           name=pkg_name)
-        override.insert(path, override_pkg_name, override_prefix)
+        overrides.insert(path, override_pkg_name, override_prefix)
 
     @action_method
     def override_asset(self, to_override, override_with, _override=None):
@@ -212,10 +266,14 @@ class AssetsConfiguratorMixin(object):
         override_prefix = ''
         if ':' in override_with:
             override_package, override_prefix = override_with.split(':', 1)
-
         # *_isdir = override is package or directory
-        overridden_isdir = path=='' or path.endswith('/') 
-        override_isdir = override_prefix=='' or override_prefix.endswith('/')
+        is_filesystem = override_package.startswith('/')
+        overridden_isdir = path=='' or path.endswith('/')
+        if is_filesystem:
+            override_isdir = override_prefix.endswith('/')
+        else:
+            override_isdir = (override_prefix=='' or
+                              override_prefix.endswith('/'))
 
         if overridden_isdir and (not override_isdir):
             raise ConfigurationError(
@@ -231,9 +289,12 @@ class AssetsConfiguratorMixin(object):
 
         def register():
             __import__(package)
-            __import__(override_package)
             from_package = sys.modules[package]
-            to_package = sys.modules[override_package]
+            if is_filesystem:
+                to_package = override_package
+            else:
+                __import__(override_package)
+                to_package = sys.modules[override_package]
             override(from_package, path, to_package, override_prefix)
 
         self.action(None, register)
