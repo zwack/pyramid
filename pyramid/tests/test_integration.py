@@ -578,26 +578,28 @@ class WSGIApp2AppTest(unittest.TestCase):
         res = self.testapp.get('/hello', status=200)
         self.assertTrue(b'Hello' in res.body)
 
-if os.name != 'java': # uses chameleon
-    class RendererScanAppTest(IntegrationBase, unittest.TestCase):
-        package = 'pyramid.tests.pkgs.rendererscanapp'
-        def test_root(self):
-            res = self.testapp.get('/one', status=200)
-            self.assertTrue(b'One!' in res.body)
 
-        def test_two(self):
-            res = self.testapp.get('/two', status=200)
-            self.assertTrue(b'Two!' in res.body)
+class RendererScanAppTest(IntegrationBase, unittest.TestCase):
+    package = 'pyramid.tests.pkgs.rendererscanapp'
 
-        def test_rescan(self):
-            self.config.scan('pyramid.tests.pkgs.rendererscanapp')
-            app = self.config.make_wsgi_app()
-            from webtest import TestApp
-            testapp = TestApp(app)
-            res = testapp.get('/one', status=200)
-            self.assertTrue(b'One!' in res.body)
-            res = testapp.get('/two', status=200)
-            self.assertTrue(b'Two!' in res.body)
+    def test_root(self):
+        res = self.testapp.get('/one', status=200)
+        self.assertTrue(b'One!' in res.body)
+
+    def test_two(self):
+        res = self.testapp.get('/two', status=200)
+        self.assertTrue(b'Two!' in res.body)
+
+    def test_rescan(self):
+        self.config.scan('pyramid.tests.pkgs.rendererscanapp')
+        app = self.config.make_wsgi_app()
+        from webtest import TestApp
+        testapp = TestApp(app)
+        res = testapp.get('/one', status=200)
+        self.assertTrue(b'One!' in res.body)
+        res = testapp.get('/two', status=200)
+        self.assertTrue(b'Two!' in res.body)
+
 
 class DummyContext(object):
     pass

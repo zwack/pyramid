@@ -1,8 +1,13 @@
 from pyramid.view import view_config
 
-@view_config(name='one', renderer='one.pt')
+@view_config(name='one', renderer='string')
 def one(request):
-    return {'name':'One!'}
+    return 'One!'
+
+
+@view_config(name='two', renderer='string')
+def two(request):
+    return 'Two!'
 
 def includeme(config):
     config.scan()
