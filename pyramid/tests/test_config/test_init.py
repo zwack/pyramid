@@ -17,6 +17,7 @@ from pyramid.tests.test_config import DummyContext
 from pyramid.exceptions import ConfigurationExecutionError
 from pyramid.exceptions import ConfigurationConflictError
 
+
 class ConfiguratorTests(unittest.TestCase):
     def _makeOne(self, *arg, **kw):
         from pyramid.config import Configurator
@@ -30,7 +31,7 @@ class ConfiguratorTests(unittest.TestCase):
         from pyramid.interfaces import IView
         from pyramid.interfaces import IViewClassifier
         from pyramid.interfaces import IExceptionViewClassifier
-        if exception_view: # pragma: no cover
+        if exception_view:  # pragma: no cover
             classifier = IExceptionViewClassifier
         else:
             classifier = IViewClassifier
@@ -43,10 +44,11 @@ class ConfiguratorTests(unittest.TestCase):
             default=None)
 
     def _registerEventListener(self, config, event_iface=None):
-        if event_iface is None: # pragma: no cover
+        if event_iface is None:  # pragma: no cover
             from zope.interface import Interface
             event_iface = Interface
         L = []
+
         def subscriber(*event):
             L.extend(event)
         config.registry.registerHandler(subscriber, (event_iface,))
@@ -71,7 +73,7 @@ class ConfiguratorTests(unittest.TestCase):
         self.assertTrue(config.registry.getUtility(IRendererFactory, 'string'))
         if not PYPY:
             self.assertTrue(config.registry.getUtility(IRendererFactory, '.pt'))
-            self.assertTrue(config.registry.getUtility(IRendererFactory,'.txt'))
+            self.assertTrue(config.registry.getUtility(IRendererFactory, '.txt'))
 
     def test_begin(self):
         from pyramid.config import Configurator
@@ -80,7 +82,7 @@ class ConfiguratorTests(unittest.TestCase):
         config.manager = manager
         config.begin()
         self.assertEqual(manager.pushed,
-                         {'registry':config.registry, 'request':None})
+                         {'registry': config.registry, 'request': None})
         self.assertEqual(manager.popped, False)
 
     def test_begin_with_request(self):
@@ -91,7 +93,7 @@ class ConfiguratorTests(unittest.TestCase):
         config.manager = manager
         config.begin(request=request)
         self.assertEqual(manager.pushed,
-                         {'registry':config.registry, 'request':request})
+                         {'registry': config.registry, 'request': request})
         self.assertEqual(manager.popped, False)
 
     def test_end(self):
@@ -112,8 +114,8 @@ class ConfiguratorTests(unittest.TestCase):
 
     def test_ctor_noreg_custom_settings(self):
         from pyramid.interfaces import ISettings
-        settings = {'reload_templates':True,
-                    'mysetting':True}
+        settings = {'reload_templates': True,
+                    'mysetting': True}
         config = self._makeOne(settings=settings)
         settings = config.registry.getUtility(ISettings)
         self.assertEqual(settings['reload_templates'], True)
@@ -220,7 +222,9 @@ class ConfiguratorTests(unittest.TestCase):
     def test_ctor_exceptionresponse_view_custom(self):
         from pyramid.interfaces import IExceptionResponse
         from pyramid.interfaces import IRequest
-        def exceptionresponse_view(context, request): pass
+
+        def exceptionresponse_view(context, request):
+            pass
         config = self._makeOne(exceptionresponse_view=exceptionresponse_view)
         view = self._getViewCallable(config,
                                      ctx_iface=IExceptionResponse,
@@ -311,11 +315,14 @@ class ConfiguratorTests(unittest.TestCase):
     def test__fix_registry_queryAdapterOrSelf(self):
         from zope.interface import Interface
         from zope.interface import implementer
+
         class IFoo(Interface):
             pass
+
         @implementer(IFoo)
         class Foo(object):
             pass
+
         class Bar(object):
             pass
         adaptation = ()
@@ -358,9 +365,9 @@ class ConfiguratorTests(unittest.TestCase):
         config._add_tween = lambda *arg, **kw: False
         config.setup_registry()
         self.assertEqual(views[0], ((default_exceptionresponse_view,),
-                                    {'context':IExceptionResponse}))
+                                    {'context': IExceptionResponse}))
         self.assertEqual(views[1], ((default_exceptionresponse_view,),
-                                    {'context':WSGIHTTPException}))
+                                    {'context': WSGIHTTPException}))
 
     def test_setup_registry_registers_default_webob_iresponse_adapter(self):
         from webob import Response
@@ -379,7 +386,8 @@ class ConfiguratorTests(unittest.TestCase):
         from pyramid.registry import Registry
         reg = Registry()
         config = self._makeOne(reg, autocommit=True)
-        config.setup_registry() # registers IExceptionResponse default view
+        config.setup_registry()  # registers IExceptionResponse default view
+
         def myview(context, request):
             return 'OK'
         config.add_view(myview, context=HTTPNotFound, renderer=null_renderer)
@@ -393,8 +401,8 @@ class ConfiguratorTests(unittest.TestCase):
     def test_setup_registry_custom_settings(self):
         from pyramid.registry import Registry
         from pyramid.interfaces import ISettings
-        settings = {'reload_templates':True,
-                    'mysetting':True}
+        settings = {'reload_templates': True,
+                    'mysetting': True}
         reg = Registry()
         config = self._makeOne(reg)
         config.setup_registry(settings=settings)
@@ -710,19 +718,24 @@ pyramid.tests.test_config.dummy_include2""",
 
     def test_include_with_route_prefix(self):
         root_config = self._makeOne(autocommit=True)
+
         def dummy_subapp(config):
             self.assertEqual(config.route_prefix, 'root')
         root_config.include(dummy_subapp, route_prefix='root')
 
     def test_include_with_nested_route_prefix(self):
         root_config = self._makeOne(autocommit=True, route_prefix='root')
+
         def dummy_subapp2(config):
             self.assertEqual(config.route_prefix, 'root/nested')
+
         def dummy_subapp3(config):
             self.assertEqual(config.route_prefix, 'root/nested/nested2')
             config.include(dummy_subapp4)
+
         def dummy_subapp4(config):
             self.assertEqual(config.route_prefix, 'root/nested/nested2')
+
         def dummy_subapp(config):
             self.assertEqual(config.route_prefix, 'root/nested')
             config.include(dummy_subapp2)
@@ -734,9 +747,11 @@ pyramid.tests.test_config.dummy_include2""",
         from pyramid.exceptions import ConfigurationError
         import inspect
         config = self._makeOne()
+
         class DummyInspect(object):
             def getmodule(self, c):
                 return inspect.getmodule(c)
+
             def getsourcefile(self, c):
                 return None
         config.inspect = DummyInspect()
@@ -744,10 +759,10 @@ pyramid.tests.test_config.dummy_include2""",
             config.include('pyramid.tests.test_config.dummy_include')
         except ConfigurationError as e:
             self.assertEqual(
-                e.args[0], 
+                e.args[0],
                 "No source file for module 'pyramid.tests.test_config' (.py "
                 "file must exist, refusing to use orphan .pyc or .pyo file).")
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_action_branching_kw_is_None(self):
@@ -756,7 +771,7 @@ pyramid.tests.test_config.dummy_include2""",
 
     def test_action_branching_kw_is_not_None(self):
         config = self._makeOne(autocommit=True)
-        self.assertEqual(config.action('discrim', kw={'a':1}), None)
+        self.assertEqual(config.action('discrim', kw={'a': 1}), None)
 
     def test_action_autocommit_with_introspectables(self):
         from pyramid.config.util import ActionInfo
@@ -773,14 +788,14 @@ pyramid.tests.test_config.dummy_include2""",
         intr = DummyIntrospectable()
         config.action('discrim', introspectables=(intr,))
         self.assertEqual(len(intr.registered), 0)
-        
+
     def test_action_branching_nonautocommit_with_config_info(self):
         config = self._makeOne(autocommit=False)
         config.info = 'abc'
         state = DummyActionState()
         state.autocommit = False
         config.action_state = state
-        config.action('discrim', kw={'a':1})
+        config.action('discrim', kw={'a': 1})
         self.assertEqual(
             state.actions,
             [((),
@@ -800,7 +815,7 @@ pyramid.tests.test_config.dummy_include2""",
         state = DummyActionState()
         config.action_state = state
         state.autocommit = False
-        config.action('discrim', kw={'a':1})
+        config.action('discrim', kw={'a': 1})
         self.assertEqual(
             state.actions,
             [((),
@@ -837,7 +852,7 @@ pyramid.tests.test_config.dummy_include2""",
         config.action('discrim', introspectables=(intr,))
         self.assertEqual(
             state.actions[0][1]['introspectables'], ())
-        
+
     def test_scan_integration(self):
         from zope.interface import alsoProvides
         from pyramid.interfaces import IRequest
@@ -859,13 +874,13 @@ pyramid.tests.test_config.dummy_include2""",
         result = render_view_to_response(ctx, req, '')
         self.assertEqual(result, 'grokked_post')
 
-        result= render_view_to_response(ctx, req, 'grokked_class')
+        result = render_view_to_response(ctx, req, 'grokked_class')
         self.assertEqual(result, 'grokked_class')
 
-        result= render_view_to_response(ctx, req, 'grokked_instance')
+        result = render_view_to_response(ctx, req, 'grokked_instance')
         self.assertEqual(result, 'grokked_instance')
 
-        result= render_view_to_response(ctx, req, 'oldstyle_grokked_class')
+        result = render_view_to_response(ctx, req, 'oldstyle_grokked_class')
         self.assertEqual(result, 'oldstyle_grokked_class')
 
         req.method = 'GET'
@@ -876,13 +891,13 @@ pyramid.tests.test_config.dummy_include2""",
         result = render_view_to_response(ctx, req, 'another')
         self.assertEqual(result, 'another_grokked_post')
 
-        result= render_view_to_response(ctx, req, 'another_grokked_class')
+        result = render_view_to_response(ctx, req, 'another_grokked_class')
         self.assertEqual(result, 'another_grokked_class')
 
-        result= render_view_to_response(ctx, req, 'another_grokked_instance')
+        result = render_view_to_response(ctx, req, 'another_grokked_instance')
         self.assertEqual(result, 'another_grokked_instance')
 
-        result= render_view_to_response(ctx, req,
+        result = render_view_to_response(ctx, req,
                                         'another_oldstyle_grokked_class')
         self.assertEqual(result, 'another_oldstyle_grokked_class')
 
@@ -947,7 +962,7 @@ pyramid.tests.test_config.dummy_include2""",
         from pyramid.view import render_view_to_response
         import pyramid.tests.test_config.pkgs.scannable as package
         config = self._makeOne(autocommit=True)
-        config.scan(package, 
+        config.scan(package,
                     ignore='pyramid.tests.test_config.pkgs.scannable.another')
 
         ctx = DummyContext()
@@ -962,7 +977,7 @@ pyramid.tests.test_config.dummy_include2""",
         # ignored
         v = render_view_to_response(ctx, req, 'another_stacked_class2')
         self.assertEqual(v, None)
-        
+
     def test_scan_integration_dottedname_package(self):
         from zope.interface import alsoProvides
         from pyramid.interfaces import IRequest
@@ -993,8 +1008,10 @@ pyramid.tests.test_config.dummy_include2""",
             path = os.path.join(here, 'path')
             sys.path.append(path)
             config = self._makeOne(autocommit=True)
+
             class FooException(Exception):
                 pass
+
             def onerror(name):
                 raise FooException
             self.assertRaises(FooException, config.scan, 'scanerror',
@@ -1025,6 +1042,7 @@ pyramid.tests.test_config.dummy_include2""",
     @skip_on('py3')
     def test_hook_zca(self):
         from zope.component import getSiteManager
+
         def foo():
             '123'
         try:
@@ -1039,6 +1057,7 @@ pyramid.tests.test_config.dummy_include2""",
     @skip_on('py3')
     def test_unhook_zca(self):
         from zope.component import getSiteManager
+
         def foo():
             '123'
         try:
@@ -1052,16 +1071,25 @@ pyramid.tests.test_config.dummy_include2""",
 
     def test_commit_conflict_simple(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
         config.add_view(view1)
         config.add_view(view2)
         self.assertRaises(ConfigurationConflictError, config.commit)
 
     def test_commit_conflict_resolved_with_include(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
+
         def includeme(config):
             config.add_view(view2)
         config.add_view(view1)
@@ -1072,10 +1100,16 @@ pyramid.tests.test_config.dummy_include2""",
 
     def test_commit_conflict_with_two_includes(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
+
         def includeme1(config):
             config.add_view(view1)
+
         def includeme2(config):
             config.add_view(view2)
         config.include(includeme1)
@@ -1086,16 +1120,24 @@ pyramid.tests.test_config.dummy_include2""",
             c1, c2 = _conflictFunctions(why)
             self.assertEqual(c1, 'includeme1')
             self.assertEqual(c2, 'includeme2')
-        else: #pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_commit_conflict_resolved_with_two_includes_and_local(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
-        def view3(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
+
+        def view3(request):
+            pass
+
         def includeme1(config):
             config.add_view(view1)
+
         def includeme2(config):
             config.add_view(view2)
         config.include(includeme1)
@@ -1108,9 +1150,15 @@ pyramid.tests.test_config.dummy_include2""",
     def test_autocommit_no_conflicts(self):
         from pyramid.renderers import null_renderer
         config = self._makeOne(autocommit=True)
-        def view1(request): pass
-        def view2(request): pass
-        def view3(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
+
+        def view3(request):
+            pass
         config.add_view(view1, renderer=null_renderer)
         config.add_view(view2, renderer=null_renderer)
         config.add_view(view3, renderer=null_renderer)
@@ -1120,8 +1168,12 @@ pyramid.tests.test_config.dummy_include2""",
 
     def test_conflict_set_notfound_view(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
         config.set_notfound_view(view1)
         config.set_notfound_view(view2)
         try:
@@ -1130,13 +1182,17 @@ pyramid.tests.test_config.dummy_include2""",
             c1, c2 = _conflictFunctions(why)
             self.assertEqual(c1, 'test_conflict_set_notfound_view')
             self.assertEqual(c2, 'test_conflict_set_notfound_view')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_conflict_set_forbidden_view(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
         config.set_forbidden_view(view1)
         config.set_forbidden_view(view2)
         try:
@@ -1145,7 +1201,7 @@ pyramid.tests.test_config.dummy_include2""",
             c1, c2 = _conflictFunctions(why)
             self.assertEqual(c1, 'test_conflict_set_forbidden_view')
             self.assertEqual(c2, 'test_conflict_set_forbidden_view')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test___getattr__missing_when_directives_exist(self):
@@ -1160,19 +1216,24 @@ pyramid.tests.test_config.dummy_include2""",
 
     def test___getattr__matches(self):
         config = self._makeOne()
-        def foo(config): pass
-        directives = {'foo':(foo, True)}
+
+        def foo(config):
+            pass
+        directives = {'foo': (foo, True)}
         config.registry._directives = directives
         foo_meth = config.foo
         self.assertTrue(getattr(foo_meth, im_func).__docobj__ is foo)
 
     def test___getattr__matches_no_action_wrap(self):
         config = self._makeOne()
-        def foo(config): pass
-        directives = {'foo':(foo, False)}
+
+        def foo(config):
+            pass
+        directives = {'foo': (foo, False)}
         config.registry._directives = directives
         foo_meth = config.foo
         self.assertTrue(getattr(foo_meth, im_func) is foo)
+
 
 class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
 
@@ -1189,7 +1250,7 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
         config = Configurator(*arg, **kw)
         config.registry._dont_resolve_responses = True
         return config
-    
+
     def _getRouteRequestIface(self, config, name):
         from pyramid.interfaces import IRouteRequest
         iface = config.registry.getUtility(IRouteRequest, name)
@@ -1215,10 +1276,12 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
         from pyramid.interfaces import IRendererFactory
         from pyramid.interfaces import ITemplateRenderer
         from zope.interface import implementer
+
         @implementer(ITemplateRenderer)
         class Renderer:
             def __init__(self, info):
                 self.__class__.info = info
+
             def __call__(self, *arg):
                 return 'Hello!'
         config.registry.registerUtility(Renderer, IRendererFactory, name=name)
@@ -1324,9 +1387,11 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
         from pyramid.renderers import null_renderer
         config = self._makeOne(autocommit=True)
         self._registerRenderer(config)
+
         class View(object):
             def __init__(self, context, request):
                 pass
+
             def alt(self):
                 return 'OK'
         config.add_route('name', 'path', view=View, view_attr='alt',
@@ -1367,8 +1432,12 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
 
     def test_conflict_route_with_view(self):
         config = self._makeOne()
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
         config.add_route('a', '/a', view=view1)
         config.add_route('a', '/a', view=view2)
         try:
@@ -1381,8 +1450,9 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
             self.assertEqual(c4, 'test_conflict_route_with_view')
             self.assertEqual(c5, 'test_conflict_route_with_view')
             self.assertEqual(c6, 'test_conflict_route_with_view')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
+
 
 class TestConfigurator_add_directive(unittest.TestCase):
 
@@ -1451,11 +1521,12 @@ class TestConfigurator_add_directive(unittest.TestCase):
         self.assertEqual(action['callable'], None)
         self.assertEqual(action['args'], config2.package)
 
+
 class TestActionState(unittest.TestCase):
     def _makeOne(self):
         from pyramid.config import ActionState
         return ActionState()
-    
+
     def test_it(self):
         c = self._makeOne()
         self.assertEqual(c.actions, [])
@@ -1464,7 +1535,7 @@ class TestActionState(unittest.TestCase):
         from pyramid.tests.test_config import dummyfactory as f
         c = self._makeOne()
         c.actions = []
-        c.action(1, f, (1,), {'x':1})
+        c.action(1, f, (1,), {'x': 1})
         self.assertEqual(
             c.actions,
             [{'args': (1,),
@@ -1494,7 +1565,7 @@ class TestActionState(unittest.TestCase):
              'info': None,
              'introspectables': (),
              'kw': {},
-             'order': 0},])
+             'order': 0}, ])
 
     def test_action_with_includepath(self):
         c = self._makeOne()
@@ -1577,6 +1648,7 @@ class TestActionState(unittest.TestCase):
 
     def test_execute_actions_tuples(self):
         output = []
+
         def f(*a, **k):
             output.append((a, k))
         c = self._makeOne()
@@ -1591,36 +1663,38 @@ class TestActionState(unittest.TestCase):
 
     def test_execute_actions_dicts(self):
         output = []
+
         def f(*a, **k):
             output.append((a, k))
         c = self._makeOne()
         c.actions = [
-            {'discriminator':1, 'callable':f, 'args':(1,), 'kw':{},
-             'order':0, 'includepath':(), 'info':None,
-             'introspectables':()},
-            {'discriminator':1, 'callable':f, 'args':(11,), 'kw':{},
-             'includepath':('x',), 'order': 0, 'info':None,
-             'introspectables':()},
-            {'discriminator':2, 'callable':f, 'args':(2,), 'kw':{},
-             'order':0, 'includepath':(), 'info':None,
-             'introspectables':()},
-            {'discriminator':None, 'callable':None, 'args':(), 'kw':{},
-             'order':0, 'includepath':(), 'info':None,
-             'introspectables':()},
+            {'discriminator': 1, 'callable': f, 'args': (1,), 'kw': {},
+             'order': 0, 'includepath': (), 'info': None,
+             'introspectables': ()},
+            {'discriminator': 1, 'callable': f, 'args': (11,), 'kw': {},
+             'includepath': ('x',), 'order': 0, 'info': None,
+             'introspectables': ()},
+            {'discriminator': 2, 'callable': f, 'args': (2,), 'kw': {},
+             'order': 0, 'includepath': (), 'info': None,
+             'introspectables': ()},
+            {'discriminator': None, 'callable': None, 'args': (), 'kw': {},
+             'order': 0, 'includepath': (), 'info': None,
+             'introspectables': ()},
             ]
         c.execute_actions()
         self.assertEqual(output,  [((1,), {}), ((2,), {})])
 
     def test_execute_actions_with_introspectables(self):
         output = []
+
         def f(*a, **k):
             output.append((a, k))
         c = self._makeOne()
         intr = DummyIntrospectable()
         c.actions = [
-            {'discriminator':1, 'callable':f, 'args':(1,), 'kw':{},
-             'order':0, 'includepath':(), 'info':None,
-             'introspectables':(intr,)},
+            {'discriminator': 1, 'callable': f, 'args': (1,), 'kw': {},
+             'order': 0, 'includepath': (), 'info': None,
+             'introspectables': (intr,)},
             ]
         introspector = object()
         c.execute_actions(introspector=introspector)
@@ -1631,9 +1705,9 @@ class TestActionState(unittest.TestCase):
         c = self._makeOne()
         intr = DummyIntrospectable()
         c.actions = [
-            {'discriminator':1, 'callable':None, 'args':(1,), 'kw':{},
-             'order':0, 'includepath':(), 'info':None,
-             'introspectables':(intr,)},
+            {'discriminator': 1, 'callable': None, 'args': (1,), 'kw': {},
+             'order': 0, 'includepath': (), 'info': None,
+             'introspectables': (intr,)},
             ]
         introspector = object()
         c.execute_actions(introspector=introspector)
@@ -1641,8 +1715,10 @@ class TestActionState(unittest.TestCase):
 
     def test_execute_actions_error(self):
         output = []
+
         def f(*a, **k):
             output.append(('f', a, k))
+
         def bad():
             raise NotImplementedError
         c = self._makeOne()
@@ -1654,6 +1730,7 @@ class TestActionState(unittest.TestCase):
             ]
         self.assertRaises(ConfigurationExecutionError, c.execute_actions)
         self.assertEqual(output, [('f', (1,), {}), ('f', (2,), {})])
+
 
 class Test_resolveConflicts(unittest.TestCase):
     def _callFUT(self, actions):
@@ -1868,7 +1945,7 @@ class Test_resolveConflicts(unittest.TestCase):
                   'order': 99999}
                   ]
                   )
-        
+
 
 class TestGlobalRegistriesIntegration(unittest.TestCase):
     def setUp(self):
@@ -1899,9 +1976,11 @@ class TestGlobalRegistriesIntegration(unittest.TestCase):
         global_registries.remove(config2.registry)
         self.assertEqual(global_registries.last, config1.registry)
 
+
 class DummyRequest:
     subpath = ()
     matchdict = None
+
     def __init__(self, environ=None):
         if environ is None:
             environ = {}
@@ -1909,48 +1988,64 @@ class DummyRequest:
         self.params = {}
         self.cookies = {}
 
+
 class DummyResponse:
     status = '200 OK'
     headerlist = ()
     app_iter = ()
     body = ''
 
+
 class DummyThreadLocalManager(object):
     pushed = None
     popped = False
+
     def push(self, d):
         self.pushed = d
+
     def pop(self):
         self.popped = True
 
 from zope.interface import implementer
+
+
 @implementer(IDummy)
 class DummyEvent:
     pass
+
 
 class DummyRegistry(object):
     def __init__(self, adaptation=None):
         self.utilities = []
         self.adapters = []
         self.adaptation = adaptation
+
     def subscribers(self, events, name):
         self.events = events
         return events
+
     def registerUtility(self, *arg, **kw):
         self.utilities.append((arg, kw))
+
     def registerAdapter(self, *arg, **kw):
         self.adapters.append((arg, kw))
+
     def queryAdapter(self, *arg, **kw):
         return self.adaptation
 
 from pyramid.interfaces import IResponse
+
+
 @implementer(IResponse)
 class DummyResponse(object):
     pass
-    
+
 from zope.interface import Interface
+
+
 class IOther(Interface):
     pass
+
 
 def _conflictFunctions(e):
     conflicts = e._conflicts.values()
@@ -1958,17 +2053,21 @@ def _conflictFunctions(e):
         for confinst in conflict:
             yield confinst.function
 
+
 class DummyActionState(object):
     autocommit = False
     info = ''
+
     def __init__(self):
         self.actions = []
+
     def action(self, *arg, **kw):
         self.actions.append((arg, kw))
+
 
 class DummyIntrospectable(object):
     def __init__(self):
         self.registered = []
+
     def register(self, introspector, action_info):
         self.registered.append((introspector, action_info))
-        
