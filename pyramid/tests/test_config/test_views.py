@@ -13,6 +13,7 @@ from pyramid.exceptions import ConfigurationError
 from pyramid.exceptions import ConfigurationExecutionError
 from pyramid.exceptions import ConfigurationConflictError
 
+
 class TestViewsConfigurationMixin(unittest.TestCase):
     def _makeOne(self, *arg, **kw):
         from pyramid.config import Configurator
@@ -42,10 +43,12 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IRendererFactory
         from pyramid.interfaces import ITemplateRenderer
         from zope.interface import implementer
+
         @implementer(ITemplateRenderer)
         class Renderer:
             def __init__(self, info):
                 self.__class__.info = info
+
             def __call__(self, *arg):
                 return 'Hello!'
         config.registry.registerUtility(Renderer, IRendererFactory, name=name)
@@ -110,7 +113,8 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         self.assertTrue(b'Hello!' in view(None, None).body)
 
     def test_add_view_wrapped_view_is_decorated(self):
-        def view(request): # request-only wrapper
+
+        def view(request):  # request-only wrapper
             """ """
         config = self._makeOne(autocommit=True)
         config.add_view(view=view)
@@ -139,6 +143,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_with_function_callable_requestonly(self):
         from pyramid.renderers import null_renderer
+
         def view(request):
             return 'OK'
         config = self._makeOne(autocommit=True)
@@ -168,9 +173,11 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_with_decorator(self):
         from pyramid.renderers import null_renderer
+
         def view(request):
             """ ABC """
             return 'OK'
+
         def view_wrapper(fn):
             def inner(context, request):
                 return fn(context, request)
@@ -188,11 +195,12 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         import datetime
         from pyramid.response import Response
         response = Response('OK')
+
         def view(request):
             """ ABC """
             return response
         config = self._makeOne(autocommit=True)
-        config.add_view(view=view, http_cache=(86400, {'public':True}))
+        config.add_view(view=view, http_cache=(86400, {'public': True}))
         wrapper = self._getViewCallable(config)
         self.assertFalse(wrapper is view)
         self.assertEqual(wrapper.__doc__, view.__doc__)
@@ -207,6 +215,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_as_instance(self):
         from pyramid.renderers import null_renderer
+
         class AView:
             def __call__(self, context, request):
                 """ """
@@ -220,11 +229,12 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_as_instancemethod(self):
         from pyramid.renderers import null_renderer
+
         class View:
             def index(self, context, request):
                 return 'OK'
         view = View()
-        config=self._makeOne(autocommit=True)
+        config = self._makeOne(autocommit=True)
         config.add_view(view=view.index, renderer=null_renderer)
         wrapper = self._getViewCallable(config)
         result = wrapper(None, None)
@@ -232,6 +242,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_as_instance_requestonly(self):
         from pyramid.renderers import null_renderer
+
         class AView:
             def __call__(self, request):
                 """ """
@@ -245,6 +256,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_as_oldstyle_class(self):
         from pyramid.renderers import null_renderer
+
         class view:
             def __init__(self, context, request):
                 self.context = context
@@ -262,6 +274,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_as_oldstyle_class_requestonly(self):
         from pyramid.renderers import null_renderer
+
         class view:
             def __init__(self, request):
                 self.request = request
@@ -281,6 +294,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         from zope.interface import implementedBy
         view = lambda *arg: 'OK'
+
         class Foo:
             pass
         config = self._makeOne(autocommit=True)
@@ -320,6 +334,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         from zope.interface import implementedBy
         view = lambda *arg: 'OK'
+
         class Foo:
             pass
         config = self._makeOne(autocommit=True)
@@ -342,6 +357,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         view = lambda *arg: 'OK'
         config = self._makeOne(autocommit=True)
+
         class Foo:
             pass
         config.add_view(context=IDummy, for_=Foo, view=view,
@@ -394,6 +410,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config = self._makeOne(autocommit=True)
         config.registry.registerAdapter(
             view, (IViewClassifier, IRequest, Interface), IView, name='')
+
         def newview(context, request):
             return 'OK'
         config.add_view(view=newview, xhr=True, renderer=null_renderer)
@@ -420,6 +437,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
             view,
             (IExceptionViewClassifier, IRequest, implementedBy(RuntimeError)),
             IView, name='')
+
         def newview(context, request):
             return 'OK'
         config.add_view(view=newview, xhr=True, context=RuntimeError,
@@ -442,6 +460,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config = self._makeOne(autocommit=True)
         config.registry.registerAdapter(
             view, (IViewClassifier, IRequest, Interface), IView, name='')
+
         def newview(context, request):
             return 'OK'
         config.add_view(view=newview, renderer=null_renderer)
@@ -464,6 +483,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
             view,
             (IExceptionViewClassifier, IRequest, implementedBy(RuntimeError)),
             IView, name='')
+
         def newview(context, request):
             return 'OK'
         config.add_view(view=newview, context=RuntimeError,
@@ -488,6 +508,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config = self._makeOne(autocommit=True)
         config.registry.registerAdapter(
             view, (IViewClassifier, IRequest, Interface), IView, name='')
+
         def newview(context, request):
             return 'OK'
         config.add_view(view=newview, renderer=null_renderer)
@@ -512,6 +533,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
             view,
             (IExceptionViewClassifier, IRequest, implementedBy(RuntimeError)),
             IView, name='')
+
         def newview(context, request):
             return 'OK'
         config.add_view(view=newview, context=RuntimeError,
@@ -616,8 +638,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IView
         from pyramid.interfaces import IMultiView
         from pyramid.interfaces import IViewClassifier
+
         def view(context, request):
             return 'OK'
+
         def view2(context, request):
             return 'OK2'
         config = self._makeOne(autocommit=True)
@@ -635,9 +659,16 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_views_with_accept_multiview_replaces_existing(self):
         from pyramid.renderers import null_renderer
-        def view(context, request): return 'OK'
-        def view2(context, request): return 'OK2'
-        def view3(context, request): return 'OK3'
+
+        def view(context, request):
+            return 'OK'
+
+        def view2(context, request):
+            return 'OK2'
+
+        def view3(context, request):
+            return 'OK3'
+
         config = self._makeOne(autocommit=True)
         config.add_view(view=view, renderer=null_renderer)
         config.add_view(view=view2, accept='text/html', renderer=null_renderer)
@@ -657,8 +688,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IMultiView
         from pyramid.interfaces import IViewClassifier
         from pyramid.interfaces import IExceptionViewClassifier
+
         def view(context, request):
             return 'OK'
+
         def view2(context, request):
             return 'OK2'
         config = self._makeOne(autocommit=True)
@@ -689,8 +722,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IView
         from pyramid.interfaces import IMultiView
         from pyramid.interfaces import IViewClassifier
+
         def view(context, request):
             return 'OK'
+
         def view2(context, request):
             return 'OK2'
         view.__accept__ = 'text/html'
@@ -716,8 +751,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IMultiView
         from pyramid.interfaces import IViewClassifier
         from pyramid.interfaces import IExceptionViewClassifier
+
         def view(context, request):
             return 'OK'
+
         def view2(context, request):
             return 'OK2'
         view.__accept__ = 'text/html'
@@ -794,8 +831,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IView
         from pyramid.interfaces import IMultiView
         from pyramid.interfaces import IViewClassifier
+
         class ISuper(Interface):
             pass
+
         class ISub(ISuper):
             pass
         view = lambda *arg: 'OK'
@@ -819,8 +858,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.interfaces import IMultiView
         from pyramid.interfaces import IViewClassifier
         from pyramid.interfaces import IExceptionViewClassifier
+
         class Super(Exception):
             pass
+
         class Sub(Super):
             pass
         view = lambda *arg: 'OK'
@@ -849,18 +890,34 @@ class TestViewsConfigurationMixin(unittest.TestCase):
     def test_add_view_multiview_call_ordering(self):
         from pyramid.renderers import null_renderer as nr
         from zope.interface import directlyProvides
-        def view1(context, request): return 'view1'
-        def view2(context, request): return 'view2'
-        def view3(context, request): return 'view3'
-        def view4(context, request): return 'view4'
-        def view5(context, request): return 'view5'
-        def view6(context, request): return 'view6'
-        def view7(context, request): return 'view7'
-        def view8(context, request): return 'view8'
+
+        def view1(context, request):
+            return 'view1'
+
+        def view2(context, request):
+            return 'view2'
+
+        def view3(context, request):
+            return 'view3'
+
+        def view4(context, request):
+            return 'view4'
+
+        def view5(context, request):
+            return 'view5'
+
+        def view6(context, request):
+            return 'view6'
+
+        def view7(context, request):
+            return 'view7'
+
+        def view8(context, request):
+            return 'view8'
         config = self._makeOne(autocommit=True)
         config.add_view(view=view1, renderer=nr)
         config.add_view(view=view2, request_method='POST', renderer=nr)
-        config.add_view(view=view3,request_param='param', renderer=nr)
+        config.add_view(view=view3, request_param='param', renderer=nr)
         config.add_view(view=view4, containment=IDummy, renderer=nr)
         config.add_view(view=view5, request_method='POST',
                         request_param='param',  renderer=nr)
@@ -868,9 +925,8 @@ class TestViewsConfigurationMixin(unittest.TestCase):
                         renderer=nr)
         config.add_view(view=view7, request_param='param', containment=IDummy,
                         renderer=nr)
-        config.add_view(view=view8, request_method='POST',request_param='param',
+        config.add_view(view=view8, request_method='POST', request_param='param',
                         containment=IDummy, renderer=nr)
-
 
         wrapper = self._getViewCallable(config)
 
@@ -888,7 +944,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
         ctx = DummyContext()
         request = self._makeRequest(config)
-        request.params = {'param':'1'}
+        request.params = {'param': '1'}
         request.method = 'GET'
         self.assertEqual(wrapper(ctx, request), 'view3')
 
@@ -902,7 +958,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         ctx = DummyContext()
         request = self._makeRequest(config)
         request.method = 'POST'
-        request.params = {'param':'1'}
+        request.params = {'param': '1'}
         self.assertEqual(wrapper(ctx, request), 'view5')
 
         ctx = DummyContext()
@@ -916,32 +972,36 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         directlyProvides(ctx, IDummy)
         request = self._makeRequest(config)
         request.method = 'GET'
-        request.params = {'param':'1'}
+        request.params = {'param': '1'}
         self.assertEqual(wrapper(ctx, request), 'view7')
 
         ctx = DummyContext()
         directlyProvides(ctx, IDummy)
         request = self._makeRequest(config)
         request.method = 'POST'
-        request.params = {'param':'1'}
+        request.params = {'param': '1'}
         self.assertEqual(wrapper(ctx, request), 'view8')
 
     def test_add_view_multiview___discriminator__(self):
         from pyramid.renderers import null_renderer
         from zope.interface import Interface
+
         class IFoo(Interface):
             pass
+
         class IBar(Interface):
             pass
+
         @implementer(IFoo)
         class Foo(object):
             pass
+
         @implementer(IBar)
         class Bar(object):
             pass
         foo = Foo()
         bar = Bar()
-            
+
         from pyramid.interfaces import IRequest
         from pyramid.interfaces import IView
         from pyramid.interfaces import IViewClassifier
@@ -968,11 +1028,13 @@ class TestViewsConfigurationMixin(unittest.TestCase):
                 self.context = context
 
             def __call__(self):
-                return {'a':'1'}
+                return {'a': '1'}
         config = self._makeOne(autocommit=True)
+
         class moo(object):
             def __init__(self, *arg, **kw):
                 pass
+
             def __call__(self, *arg, **kw):
                 return 'moo'
         config.add_renderer(None, moo)
@@ -985,6 +1047,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
     def test_add_view_with_request_type_as_iface(self):
         from pyramid.renderers import null_renderer
         from zope.interface import directlyProvides
+
         def view(context, request):
             return 'OK'
         config = self._makeOne(autocommit=True)
@@ -1096,7 +1159,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, request_param='abc', renderer=null_renderer)
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.params = {'abc':''}
+        request.params = {'abc': ''}
         self.assertEqual(wrapper(None, request), 'OK')
 
     def test_add_view_with_request_param_noval_false(self):
@@ -1116,7 +1179,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
                         renderer=null_renderer)
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.params = {'abc':'123'}
+        request.params = {'abc': '123'}
         self.assertEqual(wrapper(None, request), 'OK')
 
     def test_add_view_with_request_param_val_false(self):
@@ -1125,7 +1188,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, request_param='abc=123')
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.params = {'abc':''}
+        request.params = {'abc': ''}
         self._assertNotFound(wrapper, None, request)
 
     def test_add_view_with_xhr_true(self):
@@ -1160,7 +1223,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, header='Host', renderer=null_renderer)
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.headers = {'Host':'whatever'}
+        request.headers = {'Host': 'whatever'}
         self.assertEqual(wrapper(None, request), 'OK')
 
     def test_add_view_with_header_noval_nomatch(self):
@@ -1169,7 +1232,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, header='Host')
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.headers = {'NotHost':'whatever'}
+        request.headers = {'NotHost': 'whatever'}
         self._assertNotFound(wrapper, None, request)
 
     def test_add_view_with_header_val_match(self):
@@ -1179,7 +1242,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, header=r'Host:\d', renderer=null_renderer)
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.headers = {'Host':'1'}
+        request.headers = {'Host': '1'}
         self.assertEqual(wrapper(None, request), 'OK')
 
     def test_add_view_with_header_val_nomatch(self):
@@ -1188,7 +1251,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, header=r'Host:\d')
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.headers = {'Host':'abc'}
+        request.headers = {'Host': 'abc'}
         self._assertNotFound(wrapper, None, request)
 
     def test_add_view_with_header_val_missing(self):
@@ -1198,7 +1261,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(view=view, header=r'Host:\d')
         wrapper = self._getViewCallable(config)
         request = self._makeRequest(config)
-        request.headers = {'NoHost':'1'}
+        request.headers = {'NoHost': '1'}
         self.assertRaises(HTTPNotFound, wrapper, None, request)
 
     def test_add_view_with_accept_match(self):
@@ -1282,8 +1345,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         view = lambda *arg: 'OK'
         config = self._makeOne(autocommit=True)
+
         def pred1(context, request):
             return True
+
         def pred2(context, request):
             return True
         predicates = (pred1, pred2)
@@ -1296,8 +1361,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
     def test_add_view_with_custom_predicates_nomatch(self):
         view = lambda *arg: 'OK'
         config = self._makeOne(autocommit=True)
+
         def pred1(context, request):
             return True
+
         def pred2(context, request):
             return False
         predicates = (pred1, pred2)
@@ -1311,6 +1378,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         view = lambda *arg: 'OK'
         view2 = lambda *arg: 'NOT OK'
         config = self._makeOne(autocommit=True)
+
         def pred1(context, request):
             return True
         config.add_view(view=view, custom_predicates=(pred1,),
@@ -1349,10 +1417,12 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         view1 = lambda *arg: 'OK'
         outerself = self
+
         class DummyPolicy(object):
             def effective_principals(self, r):
                 outerself.assertEqual(r, request)
                 return ['abc']
+
             def permits(self, context, principals, permission):
                 outerself.assertEqual(context, None)
                 outerself.assertEqual(principals, ['abc'])
@@ -1371,10 +1441,12 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         view1 = lambda *arg: 'OK'
         outerself = self
+
         class DummyPolicy(object):
             def effective_principals(self, r):
                 outerself.assertEqual(r, request)
                 return ['abc']
+
             def permits(self, context, principals, permission):
                 outerself.assertEqual(context, None)
                 outerself.assertEqual(principals, ['abc'])
@@ -1393,7 +1465,9 @@ class TestViewsConfigurationMixin(unittest.TestCase):
     def test_add_view_with_no_default_permission_no_explicit_permission(self):
         from pyramid.renderers import null_renderer
         view1 = lambda *arg: 'OK'
-        class DummyPolicy(object): pass # wont be called
+
+        class DummyPolicy(object):
+            pass  # wont be called
         policy = DummyPolicy()
         config = self._makeOne(authorization_policy=policy,
                                authentication_policy=policy,
@@ -1405,13 +1479,17 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_add_view_with_mapper(self):
         from pyramid.renderers import null_renderer
+
         class Mapper(object):
             def __init__(self, **kw):
                 self.__class__.kw = kw
+
             def __call__(self, view):
                 return view
         config = self._makeOne(autocommit=True)
-        def view(context, request): return 'OK'
+
+        def view(context, request):
+            return 'OK'
         config.add_view(view=view, mapper=Mapper, renderer=null_renderer)
         view = self._getViewCallable(config)
         self.assertEqual(view(None, None), 'OK')
@@ -1421,12 +1499,15 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.renderers import null_renderer
         from pyramid.exceptions import PredicateMismatch
         from zope.interface import directlyProvides
+
         class view(object):
             __view_defaults__ = {
-                'containment':'pyramid.tests.test_config.IDummy'
+                'containment': 'pyramid.tests.test_config.IDummy'
                 }
+
             def __init__(self, request):
                 pass
+
             def __call__(self):
                 return 'OK'
         config = self._makeOne(autocommit=True)
@@ -1475,16 +1556,18 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         context = DummyContext()
         request = self._makeRequest(config)
         self.assertRaises(PredicateMismatch, wrapper, context, request)
-        
+
     def test_add_view_with_view_config_and_view_defaults_doesnt_conflict(self):
         from pyramid.renderers import null_renderer
+
         class view(object):
             __view_defaults__ = {
-                'containment':'pyramid.tests.test_config.IDummy'
+                'containment': 'pyramid.tests.test_config.IDummy'
                 }
+
         class view2(object):
             __view_defaults__ = {
-                'containment':'pyramid.tests.test_config.IFactory'
+                'containment': 'pyramid.tests.test_config.IFactory'
                 }
         config = self._makeOne(autocommit=False)
         config.add_view(
@@ -1493,17 +1576,19 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_view(
             view=view2,
             renderer=null_renderer)
-        config.commit() # does not raise
+        config.commit()  # does not raise
 
     def test_add_view_with_view_config_and_view_defaults_conflicts(self):
         from pyramid.renderers import null_renderer
+
         class view(object):
             __view_defaults__ = {
-                'containment':'pyramid.tests.test_config.IDummy'
+                'containment': 'pyramid.tests.test_config.IDummy'
                 }
+
         class view2(object):
             __view_defaults__ = {
-                'containment':'pyramid.tests.test_config.IDummy'
+                'containment': 'pyramid.tests.test_config.IDummy'
                 }
         config = self._makeOne(autocommit=False)
         config.add_view(
@@ -1516,6 +1601,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_derive_view_function(self):
         from pyramid.renderers import null_renderer
+
         def view(request):
             return 'OK'
         config = self._makeOne()
@@ -1534,13 +1620,16 @@ class TestViewsConfigurationMixin(unittest.TestCase):
 
     def test_derive_view_with_default_renderer_no_explicit_renderer(self):
         config = self._makeOne()
+
         class moo(object):
             def __init__(self, view):
                 pass
+
             def __call__(self, *arg, **kw):
                 return 'moo'
         config.add_renderer(None, moo)
         config.commit()
+
         def view(request):
             return 'OK'
         result = config.derive_view(view)
@@ -1548,12 +1637,17 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         self.assertEqual(result(None, None).body, b'moo')
 
     def test_derive_view_with_default_renderer_with_explicit_renderer(self):
-        class moo(object): pass
+
+        class moo(object):
+            pass
+
         class foo(object):
             def __init__(self, view):
                 pass
+
             def __call__(self, *arg, **kw):
                 return 'foo'
+
         def view(request):
             return 'OK'
         config = self._makeOne()
@@ -1615,7 +1709,7 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         config.add_static_view('static', static_path)
         self.assertEqual(info.added,
                          [(config, 'static', static_path, {})])
-    
+
     def test_add_forbidden_view(self):
         from pyramid.renderers import null_renderer
         from zope.interface import implementedBy
@@ -1654,8 +1748,10 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         from pyramid.httpexceptions import HTTPNotFound
         config = self._makeOne(autocommit=True)
         config.add_route('foo', '/foo/')
-        def view(request): return Response('OK')
-        config.add_notfound_view(view, renderer=null_renderer,append_slash=True)
+
+        def view(request):
+            return Response('OK')
+        config.add_notfound_view(view, renderer=null_renderer, append_slash=True)
         request = self._makeRequest(config)
         request.environ['PATH_INFO'] = '/foo'
         request.query_string = 'a=1&b=2'
@@ -1902,16 +1998,19 @@ class Test_requestonly(unittest.TestCase):
         self.assertTrue(self._callFUT(foo), True)
 
     def test_instance_nocall(self):
-        class Foo: pass
+
+        class Foo:
+            pass
         foo = Foo()
         self.assertFalse(self._callFUT(foo))
-    
+
     def test_method_onearg_named_request(self):
         class Foo:
             def method(self, request):
                 """ """
         foo = Foo()
         self.assertTrue(self._callFUT(foo.method))
+
 
 class Test_isexception(unittest.TestCase):
     def _callFUT(self, ob):
@@ -1935,9 +2034,11 @@ class Test_isexception(unittest.TestCase):
 
     def test_is_IException_subinterface(self):
         from pyramid.interfaces import IException
+
         class ISubException(IException):
             pass
         self.assertEqual(self._callFUT(ISubException), True)
+
 
 class TestMultiView(unittest.TestCase):
     def _getTargetClass(self):
@@ -2002,8 +2103,12 @@ class TestMultiView(unittest.TestCase):
         # this failed on py3 at one point, because functions aren't orderable
         # and we were sorting the views via a plain sort() rather than
         # sort(key=itemgetter(0)).
-        def view1(request): pass
-        def view2(request): pass
+
+        def view1(request):
+            pass
+
+        def view2(request):
+            pass
         mv = self._makeOne()
         mv.add(view1, 100, None)
         self.assertEqual(mv.views, [(100, view1, None)])
@@ -2052,6 +2157,7 @@ class TestMultiView(unittest.TestCase):
     def test_match_predicate_fails(self):
         from pyramid.httpexceptions import HTTPNotFound
         mv = self._makeOne()
+
         def view(context, request):
             """ """
         view.__predicated__ = lambda *arg: False
@@ -2062,6 +2168,7 @@ class TestMultiView(unittest.TestCase):
 
     def test_match_predicate_succeeds(self):
         mv = self._makeOne()
+
         def view(context, request):
             """ """
         view.__predicated__ = lambda *arg: True
@@ -2080,6 +2187,7 @@ class TestMultiView(unittest.TestCase):
 
     def test_permitted_no_match_with__permitted__(self):
         mv = self._makeOne()
+
         def view(context, request):
             """ """
         mv.views = [(100, view, None)]
@@ -2087,6 +2195,7 @@ class TestMultiView(unittest.TestCase):
 
     def test_permitted(self):
         mv = self._makeOne()
+
         def view(context, request):
             """ """
         def permitted(context, request):
@@ -2112,8 +2221,10 @@ class TestMultiView(unittest.TestCase):
         request = DummyRequest()
         request.view_name = ''
         expected_response = DummyResponse()
+
         def view1(context, request):
             raise PredicateMismatch
+
         def view2(context, request):
             return expected_response
         mv.views = [(100, view1, None), (99, view2, None)]
@@ -2126,8 +2237,10 @@ class TestMultiView(unittest.TestCase):
         context = DummyContext()
         request = DummyRequest()
         request.view_name = ''
+
         def view1(context, request):
             raise  HTTPNotFound
+
         def view2(context, request):
             """ """
         mv.views = [(100, view1, None), (99, view2, None)]
@@ -2139,6 +2252,7 @@ class TestMultiView(unittest.TestCase):
         request = DummyRequest()
         request.view_name = ''
         expected_response = DummyResponse()
+
         def view(context, request):
             return expected_response
         mv.views = [(100, view, None)]
@@ -2158,8 +2272,10 @@ class TestMultiView(unittest.TestCase):
         request = DummyRequest()
         request.view_name = ''
         expected_response = DummyResponse()
+
         def view(context, request):
             """ """
+
         def permissive(context, request):
             return expected_response
         view.__call_permissive__ = permissive
@@ -2173,6 +2289,7 @@ class TestMultiView(unittest.TestCase):
         request = DummyRequest()
         request.view_name = ''
         expected_response = DummyResponse()
+
         def view(context, request):
             return expected_response
         mv.views = [(100, view, None)]
@@ -2185,6 +2302,7 @@ class TestMultiView(unittest.TestCase):
         request = DummyRequest()
         request.accept = DummyAccept('text/html', 'text/xml')
         expected_response = DummyResponse()
+
         def view(context, request):
             return expected_response
         mv.views = [(100, None)]
@@ -2199,6 +2317,7 @@ class TestMultiView(unittest.TestCase):
         request = DummyRequest()
         request.accept = DummyAccept('text/plain', 'text/html')
         expected_response = DummyResponse()
+
         def view(context, request):
             return expected_response
         mv.views = [(100, view, None)]
@@ -2207,18 +2326,19 @@ class TestMultiView(unittest.TestCase):
         response = mv(context, request)
         self.assertEqual(response, expected_response)
 
+
 class TestViewDeriver(unittest.TestCase):
     def setUp(self):
         self.config = testing.setUp()
 
     def tearDown(self):
         self.config = None
-        
+
     def _makeOne(self, **kw):
         kw['registry'] = self.config.registry
         from pyramid.config.views import ViewDeriver
         return ViewDeriver(**kw)
-    
+
     def _makeRequest(self):
         request = DummyRequest()
         request.registry = self.config.registry
@@ -2247,18 +2367,18 @@ class TestViewDeriver(unittest.TestCase):
             result(None, None)
         except ValueError as e:
             self.assertEqual(
-                e.args[0], 
+                e.args[0],
                 'Could not convert return value of the view callable function '
                 'pyramid.tests.test_config.test_views.view into a response '
                 'object. The value returned was None. You may have forgotten '
                 'to return a value from the view callable.'
                 )
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_function_returns_non_adaptable_dict(self):
         def view(request):
-            return {'a':1}
+            return {'a': 1}
         deriver = self._makeOne()
         result = deriver(view)
         self.assertFalse(result is view)
@@ -2266,15 +2386,15 @@ class TestViewDeriver(unittest.TestCase):
             result(None, None)
         except ValueError as e:
             self.assertEqual(
-                e.args[0], 
+                e.args[0],
                 "Could not convert return value of the view callable function "
                 "pyramid.tests.test_config.test_views.view into a response "
                 "object. The value returned was {'a': 1}. You may have "
                 "forgotten to define a renderer in the view configuration."
                 )
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
-        
+
     def test_instance_returns_non_adaptable(self):
         class AView(object):
             def __call__(self, request):
@@ -2293,14 +2413,16 @@ class TestViewDeriver(unittest.TestCase):
             self.assertTrue(msg.endswith(
                 '> into a response object. The value returned was None. You '
                 'may have forgotten to return a value from the view callable.'))
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_requestonly_default_method_returns_non_adaptable(self):
         request = DummyRequest()
+
         class AView(object):
             def __init__(self, request):
                 pass
+
             def __call__(self):
                 return None
         deriver = self._makeOne()
@@ -2310,21 +2432,23 @@ class TestViewDeriver(unittest.TestCase):
             result(None, request)
         except ValueError as e:
             self.assertEqual(
-                e.args[0], 
+                e.args[0],
                 'Could not convert return value of the view callable '
                 'method __call__ of '
                 'class pyramid.tests.test_config.test_views.AView into a '
                 'response object. The value returned was None. You may have '
                 'forgotten to return a value from the view callable.'
                 )
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_requestonly_nondefault_method_returns_non_adaptable(self):
         request = DummyRequest()
+
         class AView(object):
             def __init__(self, request):
                 pass
+
             def theviewmethod(self):
                 return None
         deriver = self._makeOne(attr='theviewmethod')
@@ -2334,18 +2458,19 @@ class TestViewDeriver(unittest.TestCase):
             result(None, request)
         except ValueError as e:
             self.assertEqual(
-                e.args[0], 
+                e.args[0],
                 'Could not convert return value of the view callable '
                 'method theviewmethod of '
                 'class pyramid.tests.test_config.test_views.AView into a '
                 'response object. The value returned was None. You may have '
                 'forgotten to return a value from the view callable.'
                 )
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
-        
+
     def test_requestonly_function(self):
         response = DummyResponse()
+
         def view(request):
             return response
         deriver = self._makeOne()
@@ -2355,6 +2480,7 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_requestonly_function_with_renderer(self):
         response = DummyResponse()
+
         class moo(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
@@ -2362,6 +2488,7 @@ class TestViewDeriver(unittest.TestCase):
                 self.assertEqual(view_inst, view)
                 self.assertEqual(ctx, context)
                 return response
+
         def view(request):
             return 'OK'
         deriver = self._makeOne(renderer=moo())
@@ -2379,6 +2506,7 @@ class TestViewDeriver(unittest.TestCase):
                 self.assertEqual(system['context'], context)
                 return 'moo'
             return inner
+
         def view(request):
             return 'OK'
         self.config.add_renderer('moo', moo)
@@ -2392,6 +2520,7 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_requestonly_function_with_renderer_request_has_view(self):
         response = DummyResponse()
+
         class moo(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
@@ -2399,6 +2528,7 @@ class TestViewDeriver(unittest.TestCase):
                 self.assertEqual(view_inst, 'view')
                 self.assertEqual(ctx, context)
                 return response
+
         def view(request):
             return 'OK'
         deriver = self._makeOne(renderer=moo())
@@ -2413,9 +2543,11 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_class_without_attr(self):
         response = DummyResponse()
+
         class View(object):
             def __init__(self, request):
                 pass
+
             def __call__(self):
                 return response
         deriver = self._makeOne()
@@ -2426,9 +2558,11 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_class_with_attr(self):
         response = DummyResponse()
+
         class View(object):
             def __init__(self, request):
                 pass
+
             def another(self):
                 return response
         deriver = self._makeOne(attr='another')
@@ -2448,6 +2582,7 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_function_requestonly(self):
         response = DummyResponse()
+
         def view(request):
             return response
         deriver = self._makeOne()
@@ -2461,9 +2596,11 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_newstyle_class_context_and_request(self):
         response = DummyResponse()
+
         class view(object):
             def __init__(self, context, request):
                 pass
+
             def __call__(self):
                 return response
         deriver = self._makeOne()
@@ -2479,9 +2616,11 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_newstyle_class_requestonly(self):
         response = DummyResponse()
+
         class view(object):
             def __init__(self, context, request):
                 pass
+
             def __call__(self):
                 return response
         deriver = self._makeOne()
@@ -2497,9 +2636,11 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_oldstyle_class_context_and_request(self):
         response = DummyResponse()
+
         class view:
             def __init__(self, context, request):
                 pass
+
             def __call__(self):
                 return response
         deriver = self._makeOne()
@@ -2515,9 +2656,11 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_oldstyle_class_requestonly(self):
         response = DummyResponse()
+
         class view:
             def __init__(self, context, request):
                 pass
+
             def __call__(self):
                 return response
         deriver = self._makeOne()
@@ -2533,6 +2676,7 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_instance_context_and_request(self):
         response = DummyResponse()
+
         class View:
             def __call__(self, context, request):
                 return response
@@ -2545,6 +2689,7 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_instance_requestonly(self):
         response = DummyResponse()
+
         class View:
             def __call__(self, request):
                 return response
@@ -2811,14 +2956,16 @@ class TestViewDeriver(unittest.TestCase):
         except HTTPForbidden as e:
             self.assertEqual(e.message,
                              'Unauthorized: <lambda> failed permission check')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_secured_view_raises_forbidden_with_name(self):
         from pyramid.interfaces import IAuthenticationPolicy
         from pyramid.interfaces import IAuthorizationPolicy
         from pyramid.httpexceptions import HTTPForbidden
-        def myview(request): pass
+
+        def myview(request):
+            pass
         self.config.registry.settings = {}
         policy = DummySecurityPolicy(False)
         self.config.registry.registerUtility(policy, IAuthenticationPolicy)
@@ -2833,13 +2980,14 @@ class TestViewDeriver(unittest.TestCase):
         except HTTPForbidden as e:
             self.assertEqual(e.message,
                              'Unauthorized: myview failed permission check')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_predicate_mismatch_view_has_no_name(self):
         from pyramid.exceptions import PredicateMismatch
         response = DummyResponse()
         view = lambda *arg: response
+
         def predicate1(context, request):
             return False
         deriver = self._makeOne(predicates=[predicate1])
@@ -2850,12 +2998,15 @@ class TestViewDeriver(unittest.TestCase):
             result(None, None)
         except PredicateMismatch as e:
             self.assertEqual(e.detail, 'predicate mismatch for view <lambda>')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
 
     def test_predicate_mismatch_view_has_name(self):
         from pyramid.exceptions import PredicateMismatch
-        def myview(request): pass
+
+        def myview(request):
+            pass
+
         def predicate1(context, request):
             return False
         deriver = self._makeOne(predicates=[predicate1])
@@ -2866,16 +3017,18 @@ class TestViewDeriver(unittest.TestCase):
             result(None, None)
         except PredicateMismatch as e:
             self.assertEqual(e.detail, 'predicate mismatch for view myview')
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError
-            
+
     def test_with_predicates_all(self):
         response = DummyResponse()
         view = lambda *arg: response
         predicates = []
+
         def predicate1(context, request):
             predicates.append(True)
             return True
+
         def predicate2(context, request):
             predicates.append(True)
             return True
@@ -2890,9 +3043,11 @@ class TestViewDeriver(unittest.TestCase):
     def test_with_predicates_checker(self):
         view = lambda *arg: 'OK'
         predicates = []
+
         def predicate1(context, request):
             predicates.append(True)
             return True
+
         def predicate2(context, request):
             predicates.append(True)
             return True
@@ -2908,9 +3063,11 @@ class TestViewDeriver(unittest.TestCase):
         from pyramid.httpexceptions import HTTPNotFound
         view = lambda *arg: 'OK'
         predicates = []
+
         def predicate1(context, request):
             predicates.append(True)
             return True
+
         def predicate2(context, request):
             predicates.append(True)
             return False
@@ -2926,8 +3083,10 @@ class TestViewDeriver(unittest.TestCase):
         from pyramid.interfaces import IView
         from pyramid.interfaces import IViewClassifier
         inner_response = Response('OK')
+
         def inner_view(context, request):
             return inner_response
+
         def outer_view(context, request):
             self.assertEqual(request.wrapped_response, inner_response)
             self.assertEqual(request.wrapped_body, inner_response.body)
@@ -2949,6 +3108,7 @@ class TestViewDeriver(unittest.TestCase):
     def test_with_wrapper_viewname_notfound(self):
         from pyramid.response import Response
         inner_response = Response('OK')
+
         def inner_view(context, request):
             return inner_response
         deriver = self._makeOne(viewname='inner', wrapper_viewname='owrap')
@@ -2958,18 +3118,21 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_newstyle_class_context_and_request_attr_and_renderer(self):
         response = DummyResponse()
+
         class renderer(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
-                self.assertEqual(resp, {'a':'1'})
+                self.assertEqual(resp, {'a': '1'})
                 self.assertEqual(view_inst.__class__, View)
                 self.assertEqual(ctx, context)
                 return response
+
         class View(object):
             def __init__(self, context, request):
                 pass
+
             def index(self):
-                return {'a':'1'}
+                return {'a': '1'}
         deriver = self._makeOne(renderer=renderer(), attr='index')
         result = deriver(View)
         self.assertFalse(result is View)
@@ -2982,18 +3145,21 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_newstyle_class_requestonly_attr_and_renderer(self):
         response = DummyResponse()
+
         class renderer(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
-                self.assertEqual(resp, {'a':'1'})
+                self.assertEqual(resp, {'a': '1'})
                 self.assertEqual(view_inst.__class__, View)
                 self.assertEqual(ctx, context)
                 return response
+
         class View(object):
             def __init__(self, request):
                 pass
+
             def index(self):
-                return {'a':'1'}
+                return {'a': '1'}
         deriver = self._makeOne(renderer=renderer(), attr='index')
         result = deriver(View)
         self.assertFalse(result is View)
@@ -3006,18 +3172,21 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_oldstyle_cls_context_request_attr_and_renderer(self):
         response = DummyResponse()
+
         class renderer(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
-                self.assertEqual(resp, {'a':'1'})
+                self.assertEqual(resp, {'a': '1'})
                 self.assertEqual(view_inst.__class__, View)
                 self.assertEqual(ctx, context)
                 return response
+
         class View:
             def __init__(self, context, request):
                 pass
+
             def index(self):
-                return {'a':'1'}
+                return {'a': '1'}
         deriver = self._makeOne(renderer=renderer(), attr='index')
         result = deriver(View)
         self.assertFalse(result is View)
@@ -3030,18 +3199,21 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_oldstyle_cls_requestonly_attr_and_renderer(self):
         response = DummyResponse()
+
         class renderer(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
-                self.assertEqual(resp, {'a':'1'})
+                self.assertEqual(resp, {'a': '1'})
                 self.assertEqual(view_inst.__class__, View)
                 self.assertEqual(ctx, context)
                 return response
+
         class View:
             def __init__(self, request):
                 pass
+
             def index(self):
-                return {'a':'1'}
+                return {'a': '1'}
         deriver = self._makeOne(renderer=renderer(), attr='index')
         result = deriver(View)
         self.assertFalse(result is View)
@@ -3054,16 +3226,18 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_instance_context_and_request_attr_and_renderer(self):
         response = DummyResponse()
+
         class renderer(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
-                self.assertEqual(resp, {'a':'1'})
+                self.assertEqual(resp, {'a': '1'})
                 self.assertEqual(view_inst, view)
                 self.assertEqual(ctx, context)
                 return response
+
         class View:
             def index(self, context, request):
-                return {'a':'1'}
+                return {'a': '1'}
         deriver = self._makeOne(renderer=renderer(), attr='index')
         view = View()
         result = deriver(view)
@@ -3076,16 +3250,18 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_as_instance_requestonly_attr_and_renderer(self):
         response = DummyResponse()
+
         class renderer(object):
             def render_view(inself, req, resp, view_inst, ctx):
                 self.assertEqual(req, request)
-                self.assertEqual(resp, {'a':'1'})
+                self.assertEqual(resp, {'a': '1'})
                 self.assertEqual(view_inst, view)
                 self.assertEqual(ctx, context)
                 return response
+
         class View:
             def index(self, request):
-                return {'a':'1'}
+                return {'a': '1'}
         deriver = self._makeOne(renderer=renderer(), attr='index')
         view = View()
         result = deriver(view)
@@ -3098,14 +3274,18 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_with_view_mapper_config_specified(self):
         response = DummyResponse()
+
         class mapper(object):
             def __init__(self, **kw):
                 self.kw = kw
+
             def __call__(self, view):
                 def wrapped(context, request):
                     return response
                 return wrapped
-        def view(context, request): return 'NOTOK'
+
+        def view(context, request):
+            return 'NOTOK'
         deriver = self._makeOne(mapper=mapper)
         result = deriver(view)
         self.assertFalse(result.__wraps__ is view)
@@ -3114,6 +3294,7 @@ class TestViewDeriver(unittest.TestCase):
     def test_with_view_mapper_view_specified(self):
         from pyramid.response import Response
         response = Response()
+
         def mapper(**kw):
             def inner(view):
                 def superinner(context, request):
@@ -3121,7 +3302,9 @@ class TestViewDeriver(unittest.TestCase):
                     return response
                 return superinner
             return inner
-        def view(context, request): return 'NOTOK'
+
+        def view(context, request):
+            return 'NOTOK'
         view.__view_mapper__ = mapper
         deriver = self._makeOne()
         result = deriver(view)
@@ -3131,6 +3314,7 @@ class TestViewDeriver(unittest.TestCase):
     def test_with_view_mapper_default_mapper_specified(self):
         from pyramid.response import Response
         response = Response()
+
         def mapper(**kw):
             def inner(view):
                 def superinner(context, request):
@@ -3139,7 +3323,9 @@ class TestViewDeriver(unittest.TestCase):
                 return superinner
             return inner
         self.config.set_view_mapper(mapper)
-        def view(context, request): return 'NOTOK'
+
+        def view(context, request):
+            return 'NOTOK'
         deriver = self._makeOne()
         result = deriver(view)
         self.assertFalse(result.__wraps__ is view)
@@ -3147,13 +3333,16 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_attr_wrapped_view_branching_default_phash(self):
         from pyramid.config.util import DEFAULT_PHASH
-        def view(context, request): pass
+
+        def view(context, request):
+            pass
         deriver = self._makeOne(phash=DEFAULT_PHASH)
         result = deriver(view)
         self.assertEqual(result.__wraps__, view)
 
     def test_attr_wrapped_view_branching_nondefault_phash(self):
-        def view(context, request): pass
+        def view(context, request):
+            pass
         deriver = self._makeOne(phash='nondefault')
         result = deriver(view)
         self.assertNotEqual(result, view)
@@ -3162,6 +3351,7 @@ class TestViewDeriver(unittest.TestCase):
         import datetime
         from pyramid.response import Response
         response = Response('OK')
+
         def inner_view(context, request):
             return response
         deriver = self._makeOne(http_cache=3600)
@@ -3177,11 +3367,12 @@ class TestViewDeriver(unittest.TestCase):
         expires = parse_httpdate(headers['Expires'])
         assert_similar_datetime(expires, when)
         self.assertEqual(headers['Cache-Control'], 'max-age=3600')
-        
+
     def test_http_cached_view_timedelta(self):
         import datetime
         from pyramid.response import Response
         response = Response('OK')
+
         def inner_view(context, request):
             return response
         deriver = self._makeOne(http_cache=datetime.timedelta(hours=1))
@@ -3202,9 +3393,10 @@ class TestViewDeriver(unittest.TestCase):
         import datetime
         from pyramid.response import Response
         response = Response('OK')
+
         def inner_view(context, request):
             return response
-        deriver = self._makeOne(http_cache=(3600, {'public':True}))
+        deriver = self._makeOne(http_cache=(3600, {'public': True}))
         result = deriver(inner_view)
         self.assertFalse(result is inner_view)
         self.assertEqual(inner_view.__module__, result.__module__)
@@ -3221,9 +3413,10 @@ class TestViewDeriver(unittest.TestCase):
     def test_http_cached_view_tuple_seconds_None(self):
         from pyramid.response import Response
         response = Response('OK')
+
         def inner_view(context, request):
             return response
-        deriver = self._makeOne(http_cache=(None, {'public':True}))
+        deriver = self._makeOne(http_cache=(None, {'public': True}))
         result = deriver(inner_view)
         self.assertFalse(result is inner_view)
         self.assertEqual(inner_view.__module__, result.__module__)
@@ -3239,13 +3432,14 @@ class TestViewDeriver(unittest.TestCase):
         from pyramid.response import Response
         response = Response()
         response.cache_control.prevent_auto = True
+
         def inner_view(context, request):
             return response
         deriver = self._makeOne(http_cache=3600)
         result = deriver(inner_view)
         request = self._makeRequest()
         result = result(None, request)
-        self.assertEqual(result, response) # doesn't blow up
+        self.assertEqual(result, response)  # doesn't blow up
         headers = dict(result.headerlist)
         self.assertFalse('Expires' in headers)
         self.assertFalse('Cache-Control' in headers)
@@ -3254,6 +3448,7 @@ class TestViewDeriver(unittest.TestCase):
         self.config.registry.settings['prevent_http_cache'] = True
         from pyramid.response import Response
         response = Response()
+
         def inner_view(context, request):
             return response
         deriver = self._makeOne(http_cache=3600)
@@ -3267,13 +3462,16 @@ class TestViewDeriver(unittest.TestCase):
 
     def test_http_cached_view_bad_tuple(self):
         deriver = self._makeOne(http_cache=(None,))
-        def view(request): pass
+
+        def view(request):
+            pass
         self.assertRaises(ConfigurationError, deriver, view)
+
 
 class TestDefaultViewMapper(unittest.TestCase):
     def setUp(self):
         self.config = testing.setUp()
-        self.registry = self.config.registry 
+        self.registry = self.config.registry
 
     def tearDown(self):
         del self.registry
@@ -3329,6 +3527,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view(object):
             def __init__(self, context, request):
                 pass
+
             def __call__(self):
                 return 'OK'
         mapper = self._makeOne()
@@ -3341,6 +3540,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view(object):
             def __init__(self, context, request):
                 pass
+
             def index(self):
                 return 'OK'
         mapper = self._makeOne(attr='index')
@@ -3353,6 +3553,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view(object):
             def __init__(self, request):
                 pass
+
             def __call__(self):
                 return 'OK'
         mapper = self._makeOne()
@@ -3365,6 +3566,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view(object):
             def __init__(self, request):
                 pass
+
             def index(self):
                 return 'OK'
         mapper = self._makeOne(attr='index')
@@ -3377,6 +3579,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view:
             def __init__(self, context, request):
                 pass
+
             def __call__(self):
                 return 'OK'
         mapper = self._makeOne()
@@ -3389,6 +3592,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view:
             def __init__(self, context, request):
                 pass
+
             def index(self):
                 return 'OK'
         mapper = self._makeOne(attr='index')
@@ -3401,6 +3605,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view:
             def __init__(self, request):
                 pass
+
             def __call__(self):
                 return 'OK'
         mapper = self._makeOne()
@@ -3413,6 +3618,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         class view:
             def __init__(self, request):
                 pass
+
             def index(self):
                 return 'OK'
         mapper = self._makeOne(attr='index')
@@ -3465,6 +3671,7 @@ class TestDefaultViewMapper(unittest.TestCase):
         request = self._makeRequest()
         self.assertEqual(result(None, request), 'OK')
 
+
 class Test_preserve_view_attrs(unittest.TestCase):
     def _callFUT(self, view, wrapped_view):
         from pyramid.config.views import preserve_view_attrs
@@ -3483,9 +3690,13 @@ class Test_preserve_view_attrs(unittest.TestCase):
         self.assertTrue(result is view)
 
     def test_it_different_with_existing_original_view(self):
-        def view1(context, request): pass
+        def view1(context, request):
+            pass
         view1.__original_view__ = 'abc'
-        def view2(context, request): pass
+
+        def view2(context, request):
+            pass
+
         result = self._callFUT(view1, view2)
         self.assertEqual(result.__original_view__, 'abc')
         self.assertFalse(result is view1)
@@ -3495,6 +3706,7 @@ class Test_preserve_view_attrs(unittest.TestCase):
             """ 1 """
             __name__ = '1'
             __module__ = '1'
+
             def __call__(self, context, request):
                 """ """
             def __call_permissive__(self, context, request):
@@ -3507,6 +3719,7 @@ class Test_preserve_view_attrs(unittest.TestCase):
             """ 2 """
             __name__ = '2'
             __module__ = '2'
+
             def __call__(self, context, request):
                 """ """
             def __call_permissive__(self, context, request):
@@ -3535,7 +3748,7 @@ class TestStaticURLInfo(unittest.TestCase):
     def _getTargetClass(self):
         from pyramid.config.views import StaticURLInfo
         return StaticURLInfo
-    
+
     def _makeOne(self):
         return self._getTargetClass()()
 
@@ -3620,9 +3833,10 @@ class TestStaticURLInfo(unittest.TestCase):
         inst = self._makeOne()
         registrations = [(None, 'package:path/', '__viewname/')]
         inst._get_registrations = lambda *x: registrations
+
         def route_url(n, **kw):
             self.assertEqual(n, '__viewname/')
-            self.assertEqual(kw, {'subpath':'abc', 'a':1})
+            self.assertEqual(kw, {'subpath': 'abc', 'a': 1})
             return 'url'
         request = self._makeRequest()
         request.route_url = route_url
@@ -3633,9 +3847,10 @@ class TestStaticURLInfo(unittest.TestCase):
         inst = self._makeOne()
         registrations = [(None, 'package:path/', '__viewname/')]
         inst._get_registrations = lambda *x: registrations
+
         def route_url(n, **kw):
             self.assertEqual(n, '__viewname/')
-            self.assertEqual(kw, {'subpath':'abc def', 'a':1})
+            self.assertEqual(kw, {'subpath': 'abc def', 'a': 1})
             return 'url'
         request = self._makeRequest()
         request.route_url = route_url
@@ -3751,30 +3966,37 @@ class TestStaticURLInfo(unittest.TestCase):
                  view_attr='attr')
         self.assertEqual(config.view_kw['attr'], 'attr')
 
+
 class Test_view_description(unittest.TestCase):
     def _callFUT(self, view):
         from pyramid.config.views import view_description
         return view_description(view)
-    
+
     def test_with_text(self):
-        def view(): pass
+
+        def view():
+            pass
         view.__text__ = 'some text'
         result = self._callFUT(view)
         self.assertEqual(result, 'some text')
-        
+
     def test_without_text(self):
-        def view(): pass
+
+        def view():
+            pass
         result = self._callFUT(view)
-        self.assertEqual(result, 
+        self.assertEqual(result,
                          'function pyramid.tests.test_config.test_views.view')
-        
+
 
 class DummyRegistry:
     pass
 
+
 class DummyRequest:
     subpath = ()
     matchdict = None
+
     def __init__(self, environ=None):
         if environ is None:
             environ = {}
@@ -3782,14 +4004,18 @@ class DummyRequest:
         self.params = {}
         self.cookies = {}
 
+
 class DummyContext:
     pass
 
 from zope.interface import implementer
 from pyramid.interfaces import IResponse
+
+
 @implementer(IResponse)
 class DummyResponse(object):
     pass
+
 
 class DummyAccept(object):
     def __init__(self, *matches):
@@ -3801,16 +4027,20 @@ class DummyAccept(object):
                 if match in offered:
                     self.matches.remove(match)
                     return match
+
     def __contains__(self, val):
         return val in self.matches
+
 
 class DummyLogger:
     def __init__(self):
         self.messages = []
+
     def info(self, msg):
         self.messages.append(msg)
     warn = info
     debug = info
+
 
 class DummySecurityPolicy:
     def __init__(self, permitted=True):
@@ -3822,8 +4052,10 @@ class DummySecurityPolicy:
     def permits(self, context, principals, permission):
         return self.permitted
 
+
 class DummyConfig:
     route_prefix = ''
+
     def add_route(self, *args, **kw):
         self.route_args = args
         self.route_kw = kw
@@ -3840,17 +4072,23 @@ class DummyConfig:
 
 from zope.interface import implementer
 from pyramid.interfaces import IMultiView
+
+
 @implementer(IMultiView)
 class DummyMultiView:
     def __init__(self):
         self.views = []
         self.name = 'name'
+
     def add(self, view, order, accept=None, phash=None):
         self.views.append((view, accept, phash))
+
     def __call__(self, context, request):
         return 'OK1'
+
     def __permitted__(self, context, request):
         """ """
+
 
 def parse_httpdate(s):
     import datetime
@@ -3858,12 +4096,14 @@ def parse_httpdate(s):
     # but CPython does not
     return datetime.datetime.strptime(s, "%a, %d %b %Y %H:%M:%S GMT")
 
+
 def assert_similar_datetime(one, two):
     for attr in ('year', 'month', 'day', 'hour', 'minute'):
         one_attr = getattr(one, attr)
         two_attr = getattr(two, attr)
-        if not one_attr == two_attr: # pragma: no cover
+        if not one_attr == two_attr:  # pragma: no cover
             raise AssertionError('%r != %r in %s' % (one_attr, two_attr, attr))
+
 
 class DummyStaticURLInfo:
     def __init__(self):
@@ -3872,11 +4112,14 @@ class DummyStaticURLInfo:
     def add(self, config, name, spec, **kw):
         self.added.append((config, name, spec, kw))
 
+
 class DummyViewDefaultsClass(object):
     __view_defaults__ = {
-        'containment':'pyramid.tests.test_config.IDummy'
+        'containment': 'pyramid.tests.test_config.IDummy'
         }
+
     def __init__(self, request):
         pass
+
     def __call__(self):
         return 'OK'

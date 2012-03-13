@@ -11,6 +11,7 @@ locale2 = os.path.abspath(
 locale3 = os.path.abspath(
     os.path.join(here, '..', 'pkgs', 'localeapp', 'locale3'))
 
+
 class TestI18NConfiguratorMixin(unittest.TestCase):
     def _makeOne(self, *arg, **kw):
         from pyramid.config import Configurator
@@ -20,6 +21,7 @@ class TestI18NConfiguratorMixin(unittest.TestCase):
     def test_set_locale_negotiator(self):
         from pyramid.interfaces import ILocaleNegotiator
         config = self._makeOne(autocommit=True)
+
         def negotiator(request): pass
         config.set_locale_negotiator(negotiator)
         self.assertEqual(config.registry.getUtility(ILocaleNegotiator),
@@ -87,9 +89,11 @@ class TestI18NConfiguratorMixin(unittest.TestCase):
         self.assertEqual(config.registry.getUtility(ITranslationDirectories),
                          [locale])
 
+
 class DummyRequest:
     subpath = ()
     matchdict = None
+
     def __init__(self, environ=None):
         if environ is None:
             environ = {}
