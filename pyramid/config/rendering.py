@@ -8,17 +8,11 @@ from pyramid.interfaces import (
 
 from pyramid.config.util import action_method
 
-from pyramid import (
-    renderers,
-    chameleon_text,
-    chameleon_zpt,
-    )
+from pyramid import renderers
 
 DEFAULT_RENDERERS = (
-    ('.txt', chameleon_text.renderer_factory),
-    ('.pt', chameleon_zpt.renderer_factory),
     ('json', renderers.json_renderer_factory),
-    ('string', renderers.string_renderer_factory),
+    ('string', renderers.string_renderer_factory)
     )
 
 class RenderingConfiguratorMixin(object):

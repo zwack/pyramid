@@ -15,7 +15,7 @@ MODULE_NAMES = (
     'configuration',
     'authentication',
     'authorization',
-    'chameleon_text',
+    'chameleon_text', ## ???: leave in for BFG to pyramid < 1.4 ?
     'chameleon_zpt',
     'decorator',
     'encode',
