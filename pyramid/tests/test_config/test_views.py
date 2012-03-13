@@ -961,32 +961,6 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         self.assertEqual(wrapper.__discriminator__(foo, request)[5], IFoo)
         self.assertEqual(wrapper.__discriminator__(bar, request)[5], IBar)
 
-    def test_add_view_with_template_renderer(self):
-        from pyramid.tests import test_config
-        from pyramid.interfaces import ISettings
-        class view(object):
-            def __init__(self, context, request):
-                self.request = request
-                self.context = context
-
-            def __call__(self):
-                return {'a':'1'}
-        config = self._makeOne(autocommit=True)
-        renderer = self._registerRenderer(config)
-        fixture = 'pyramid.tests.test_config:files/minimal.txt'
-        config.add_view(view=view, renderer=fixture)
-        wrapper = self._getViewCallable(config)
-        request = self._makeRequest(config)
-        result = wrapper(None, request)
-        self.assertEqual(result.body, b'Hello!')
-        settings = config.registry.queryUtility(ISettings)
-        result = renderer.info
-        self.assertEqual(result.registry, config.registry)
-        self.assertEqual(result.type, '.txt')
-        self.assertEqual(result.package, test_config)
-        self.assertEqual(result.name, fixture)
-        self.assertEqual(result.settings, settings)
-
     def test_add_view_with_default_renderer(self):
         class view(object):
             def __init__(self, context, request):
@@ -1007,25 +981,6 @@ class TestViewsConfigurationMixin(unittest.TestCase):
         request = self._makeRequest(config)
         result = wrapper(None, request)
         self.assertEqual(result.body, b'moo')
-
-    def test_add_view_with_template_renderer_no_callable(self):
-        from pyramid.tests import test_config
-        from pyramid.interfaces import ISettings
-        config = self._makeOne(autocommit=True)
-        renderer = self._registerRenderer(config)
-        fixture = 'pyramid.tests.test_config:files/minimal.txt'
-        config.add_view(view=None, renderer=fixture)
-        wrapper = self._getViewCallable(config)
-        request = self._makeRequest(config)
-        result = wrapper(None, request)
-        self.assertEqual(result.body, b'Hello!')
-        settings = config.registry.queryUtility(ISettings)
-        result = renderer.info
-        self.assertEqual(result.registry, config.registry)
-        self.assertEqual(result.type, '.txt')
-        self.assertEqual(result.package, test_config)
-        self.assertEqual(result.name, fixture)
-        self.assertEqual(result.settings, settings)
 
     def test_add_view_with_request_type_as_iface(self):
         from pyramid.renderers import null_renderer
@@ -1710,19 +1665,21 @@ class TestViewsConfigurationMixin(unittest.TestCase):
                                      request_iface=IRequest)
         result = view(None, request)
         self.assertEqual(result.location, '/scriptname/foo/?a=1&b=2')
-        
+
     def test_add_notfound_view_with_renderer(self):
         from zope.interface import implementedBy
         from pyramid.interfaces import IRequest
+        from pyramid.response import  Response
         from pyramid.httpexceptions import HTTPNotFound
         config = self._makeOne(autocommit=True)
-        view = lambda *arg: {}
+        view = lambda *arg: 'div'
         config.add_notfound_view(
             view,
-            renderer='pyramid.tests.test_config:files/minimal.pt')
+            renderer='string')
         config.begin()
-        try: # chameleon depends on being able to find a threadlocal registry
+        try:
             request = self._makeRequest(config)
+            request.response = Response()
             view = self._getViewCallable(config,
                                          ctx_iface=implementedBy(HTTPNotFound),
                                          request_iface=IRequest)
@@ -1734,18 +1691,20 @@ class TestViewsConfigurationMixin(unittest.TestCase):
     def test_add_forbidden_view_with_renderer(self):
         from zope.interface import implementedBy
         from pyramid.interfaces import IRequest
+        from pyramid.response import Response
         from pyramid.httpexceptions import HTTPForbidden
         config = self._makeOne(autocommit=True)
-        view = lambda *arg: {}
+        view = lambda *arg: 'div'
         config.add_forbidden_view(
             view,
-            renderer='pyramid.tests.test_config:files/minimal.pt')
+            renderer='string')
         config.begin()
-        try: # chameleon requires a threadlocal registry
+        try:
             request = self._makeRequest(config)
             view = self._getViewCallable(config,
                                          ctx_iface=implementedBy(HTTPForbidden),
                                          request_iface=IRequest)
+            request.response = Response()
             result = view(None, request)
         finally:
             config.end()

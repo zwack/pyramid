@@ -1307,16 +1307,18 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
         wrapper = self._getViewCallable(config, IOther, request_type)
         self.assertEqual(wrapper, None)
 
+    ## ???: Maybe this should not be here since we don't have template renderers
+    ## ???: Dunno if this us useful with a string renderer
     def test_add_route_with_view_renderer(self):
         config = self._makeOne(autocommit=True)
         self._registerRenderer(config)
         view = lambda *arg: 'OK'
         config.add_route('name', 'path', view=view,
-                         view_renderer='files/minimal.txt')
+                         view_renderer='string')
         request_type = self._getRouteRequestIface(config, 'name')
         wrapper = self._getViewCallable(config, None, request_type)
         self._assertRoute(config, 'name', 'path')
-        self.assertEqual(wrapper(None, None).body, b'Hello!')
+        self.assertEqual(wrapper(None, None).body, b'OK')
 
     def test_add_route_with_view_attr(self):
         from pyramid.renderers import null_renderer
@@ -1334,17 +1336,6 @@ class TestConfiguratorDeprecatedFeatures(unittest.TestCase):
         self._assertRoute(config, 'name', 'path')
         request = self._makeRequest(config)
         self.assertEqual(wrapper(None, request), 'OK')
-
-    def test_add_route_with_view_renderer_alias(self):
-        config = self._makeOne(autocommit=True)
-        self._registerRenderer(config)
-        view = lambda *arg: 'OK'
-        config.add_route('name', 'path', view=view,
-                         renderer='files/minimal.txt')
-        request_type = self._getRouteRequestIface(config, 'name')
-        wrapper = self._getViewCallable(config, None, request_type)
-        self._assertRoute(config, 'name', 'path')
-        self.assertEqual(wrapper(None, None).body, b'Hello!')
 
     def test_add_route_with_view_permission(self):
         from pyramid.interfaces import IAuthenticationPolicy
