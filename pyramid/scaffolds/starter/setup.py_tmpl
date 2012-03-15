@@ -36,7 +36,8 @@ setup(name='{{project}}',
       [paste.app_factory]
       main = {{package}}:main
       [console_scripts]
-      wsgi_config = {{package}}.scripts.wsgi:main
+      wsgi_config = {{package}}.scripts.wsgi:create_file
+      apache_config = {{package}}.scripts.wsgi:stdout_apache_config
       """,
       )
 
