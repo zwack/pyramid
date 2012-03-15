@@ -35,6 +35,8 @@ setup(name='{{project}}',
       entry_points = """\
       [paste.app_factory]
       main = {{package}}:main
+      [console_scripts]
+      wsgi_config = {{package}}.scripts.wsgi:main
       """,
       )
 
